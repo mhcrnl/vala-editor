@@ -101,17 +101,60 @@ namespace Editor {
 		public void update_info (Gtk.SourceCompletionProposal proposal, Gtk.SourceCompletionInfo info) {
 		}
 		
+		static string normalize (string str) {
+			string[] result = new string[0];
+			int len = str.length;
+			int i = 0;
+			string cur = "";
+			while (i < len) {
+				if (str[i] == '"') {
+					var j = str.index_of ("\"", i + 1);
+					if (j == -1) {
+						result = new string[0];
+						cur = "";
+						return null;
+					}
+					cur += str.substring (i, j + 1 - i);
+					i = j + 1;
+				}
+				else if (str[i] == '.') {
+					result += cur;
+					cur = "";
+					i++;
+				}
+				else {
+					cur += str[i].to_string();
+					i++;
+				}
+			}
+			result += cur;
+			for (var z = 0; z < result.length; z++) {
+				int index = result[z].index_of ("(");
+				string s = result[z].substring (0, index).strip();
+				if (index != -1)
+					s += "(";
+				if (index != -1 && index + 1 < result[z].length)
+					s += result[z].substring (index + 1).strip();
+				result[z] = s;
+			}
+			return string.joinv (".", result);
+		}
+		
 		public void populate (Gtk.SourceCompletionContext context) {
 			var list = new List<Gtk.SourceCompletionProposal>();
 			Gtk.TextIter iter, start;
 			context.get_iter (out iter);
 			string text = document.get_current_text (iter);
+			var ntext = normalize (text);
+			if (ntext == null)
+				return;
 			MatchInfo match_info;
-			if (!member_access.match (text, 0, out match_info))
+			if (!member_access.match (ntext, 0, out match_info))
 				return;
 			if (match_info.fetch(0).length < 1)
 				return;
-			string prefix = match_info.fetch (2);
+			//string prefix = match_info.fetch (2);
+			string prefix = text.substring (text.last_index_of (match_info.fetch (2)));
 			var names = member_access_split.split (match_info.fetch (1));
 			if (names.length > 0) {
 				names[names.length - 1] = prefix;

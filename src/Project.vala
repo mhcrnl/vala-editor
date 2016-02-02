@@ -23,6 +23,7 @@ namespace Editor {
 				if (parser.get_root().get_node_type() != Json.NodeType.OBJECT)
 					return null;
 				var object = parser.get_root().get_object();
+				
 				if (!object.has_member ("name") || object.get_member("name").get_value_type() != typeof (string))
 					return null;
 				if (!object.has_member ("sources") || object.get_member("sources").get_node_type() != Json.NodeType.ARRAY)
@@ -30,6 +31,7 @@ namespace Editor {
 				if (!object.has_member ("packages") || object.get_member("packages").get_node_type() != Json.NodeType.ARRAY)
 					return null;
 				var project = new Project (object.get_string_member ("name"));
+				
 				object.get_array_member("packages").foreach_element ((array, index, node) => {
 					if (project == null)
 						return;					

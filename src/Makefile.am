@@ -56,4 +56,4 @@ vala.stamp: $(vala_editor_VALASOURCES)
 
 CLEANFILES = *.c *.o vala-editor *.stamp
 
-DISTCLEANFILES = $(CLEANFILES) *.in *.xml *.ui~
+DISTCLEANFILES = $(CLEANFILES) *.in *.xml *.ui~ *.vala~ .goutputstream-*

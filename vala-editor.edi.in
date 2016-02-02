@@ -14,7 +14,10 @@
 		"src/main.vala",
 		"src/Provider.vala",
 		"src/Window.vala",
-		"src/Project.vala"
+		"src/Project.vala",
+		"src/Report.vala",
+		"src/ReportTable.vala",
+		"src/FileSourceView.vala"
 	],
 	"flags" : {
 		"gresources" : "resources.xml",

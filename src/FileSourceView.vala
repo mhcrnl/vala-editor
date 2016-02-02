@@ -133,7 +133,7 @@ namespace Editor {
 		public string get_current_text (Gtk.TextIter iter) {
 			Gtk.TextIter start;
 			view.buffer.get_iter_at_line_offset (out start, iter.get_line(), 0);
-			return start.get_text (iter).strip();
+			return start.get_text (iter);
 		}
 		
 		public signal void saved();
