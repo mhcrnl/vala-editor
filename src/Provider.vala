@@ -49,12 +49,63 @@ namespace Editor {
 			return icon;
 		}
 		
+		Gtk.Label info_label;
+		
+		public unowned Gtk.Widget? get_info_widget (Gtk.SourceCompletionProposal proposal) {
+			var symbol = (proposal as SymbolItem).symbol;
+			if (info_label == null)
+				info_label = new Gtk.Label ("");
+			string info = "";
+			if (symbol.is_internal_symbol())
+				info += "internal ";
+			else if (symbol.is_private_symbol())
+				info += "private ";
+			else
+				info += "public ";
+			
+			if (symbol is Vala.Method) {
+				var meth = symbol as Vala.Method;
+				if ((meth.binding & Vala.MemberBinding.STATIC) != 0)
+					info += "static ";
+				string str = "";
+				foreach (var param in meth.get_parameters())
+					if (param.variable_type != null)
+						str += param.variable_type.to_string() + " " + param.name + ", ";
+				if (str.length > 1)
+					str = str.substring (0, str.length - 2);
+				str = meth.return_type.to_string() + " " + meth.name + " (" + str + ")";
+				info_label.label = info + str;
+			}
+			else if (symbol is Vala.Property) {
+				var prop = symbol as Vala.Property;
+				if ((prop.binding & Vala.MemberBinding.STATIC) != 0)
+					info += "static ";
+				string str = "{ ";
+				if (prop.get_accessor != null)
+					str += "get; ";
+				if (prop.set_accessor != null)
+					str += "set; ";
+				str += "}";
+				info_label.label = info + prop.property_type.to_string() + " " + prop.name + " " + str;
+			}
+			else if (symbol is Vala.Variable) {
+				var v = symbol as Vala.Variable;
+				info_label.label = info + v.variable_type.to_string() + " " + v.name;
+			}
+			else
+				info_label.label = info + symbol.name;
+			info_label.show_all();
+			return info_label;
+		}
+		
+		public void update_info (Gtk.SourceCompletionProposal proposal, Gtk.SourceCompletionInfo info) {
+		}
+		
 		public void populate (Gtk.SourceCompletionContext context) {
 			var list = new List<Gtk.SourceCompletionProposal>();
 			Gtk.TextIter iter, start;
 			context.get_iter (out iter);
-			document.buffer.get_iter_at_line_offset (out start, iter.get_line(), 0);
-			string text = start.get_text (iter).strip();
+			string text = document.get_current_text (iter);
 			MatchInfo match_info;
 			if (!member_access.match (text, 0, out match_info))
 				return;
@@ -63,24 +114,48 @@ namespace Editor {
 			string prefix = match_info.fetch (2);
 			var names = member_access_split.split (match_info.fetch (1));
 			if (names.length > 0) {
-				text = names[0];
 				names[names.length - 1] = prefix;
+				prefix = names[0];
 			}
-			foreach (var sym in document.visible_symbols)
-				if (sym.name.has_prefix (text))
+			document.visible_symbols.foreach (sym => {
+				if (sym != null && sym.name.has_prefix (prefix))
 					list.append (new SymbolItem (sym));
+				return true;
+			});
+			string[] ns = new string[0];
+			foreach (var name in names)
+				if (name[0] != '(')
+					ns += name;
+			names = new string[0];
+			foreach (var name in ns)
+				names += name;
 			if (names.length > 0) {
 				for (var i = 1; i < names.length; i++) {
 					if (list.length() == 0)
 						break;
-					if (names[i][0] == '(')
-						continue;
-					var cur = (list.nth_data (0) as SymbolItem).symbol;
+					Vala.Symbol? current = null;
+					list.foreach (prop => {
+						var item = prop as SymbolItem;
+						var j = i;
+						string name = names[i - 1];
+						if (item.symbol.name == names[i-1])
+							current = item.symbol;
+					});
 					list = new List<Gtk.SourceCompletionProposal>();
-					foreach (var sym in document.manager.engine.get_symbols_for_name (cur, names[i], false))
+					document.manager.engine.get_symbols_for_name (current, names[i], false).foreach (sym => {
 						list.append (new SymbolItem (sym));
+						return true;
+					});
 				}
 			}
+			
+			CompareFunc<Gtk.SourceCompletionProposal> cmp = (a, b) => {
+				var na = (a as SymbolItem).symbol.name;
+				var nb = (b as SymbolItem).symbol.name;
+				return strcmp (na, nb);
+			};
+			list.sort (cmp);
+			
 			context.add_proposals (this, list, true);
 		}
 		

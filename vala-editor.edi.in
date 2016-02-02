@@ -1,0 +1,23 @@
+{
+	"name" : "vala-editor",
+	"packages" : [
+		"libvala-@VALA_VERSION@",
+		"gtksourceview-3.0",
+		"json-glib-1.0",
+		"gee-0.8"
+	],
+	"sources" : [
+		"src/Document.vala",
+		"src/DocumentManager.vala",
+		"src/Engine.vala",
+		"src/Locator.vala",
+		"src/main.vala",
+		"src/Provider.vala",
+		"src/Window.vala",
+		"src/Project.vala"
+	],
+	"flags" : {
+		"gresources" : "resources.xml",
+		"target-glib" : "2.38"
+	}
+}

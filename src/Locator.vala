@@ -16,8 +16,8 @@
  */
 
 /* Finds the innermost block containing the given location */
-public class BlockLocator : Vala.CodeVisitor {
-	struct Location {
+internal class BlockLocator : Vala.CodeVisitor {
+	public struct Location {
 		int line;
 		int column;
 		public Location (int line, int column) {
