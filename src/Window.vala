@@ -43,6 +43,8 @@ namespace Editor {
 		ReportTable table;
 		
 		construct {
+			destroy.connect (Gtk.main_quit);
+			
 			table = new ReportTable();
 			manager = new DocumentManager();
 			manager.engine.clear.connect (table.clear);
