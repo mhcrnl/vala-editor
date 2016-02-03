@@ -153,13 +153,8 @@ namespace Editor {
 				return;
 			if (match_info.fetch(0).length < 1)
 				return;
-			//string prefix = match_info.fetch (2);
-			string prefix = text.substring (text.last_index_of (match_info.fetch (2)));
+			string prefix = match_info.fetch (2);
 			var names = member_access_split.split (match_info.fetch (1));
-			if (names.length > 0) {
-				names[names.length - 1] = prefix;
-				prefix = names[0];
-			}
 			document.visible_symbols.foreach (sym => {
 				if (sym != null && sym.name.has_prefix (prefix))
 					list.append (new SymbolItem (sym));
@@ -173,17 +168,24 @@ namespace Editor {
 			foreach (var name in ns)
 				names += name;
 			if (names.length > 0) {
+				names[names.length - 1] = prefix;
+				list = new List<Gtk.SourceCompletionProposal>();
+				document.visible_symbols.foreach (sym => {
+					if (sym != null && sym.name == names[0])
+						list.append (new SymbolItem (sym));
+					return true;
+				});
 				for (var i = 1; i < names.length; i++) {
-					if (list.length() == 0)
-						break;
 					Vala.Symbol? current = null;
 					list.foreach (prop => {
-						var item = prop as SymbolItem;
-						var j = i;
-						string name = names[i - 1];
-						if (item.symbol.name == names[i-1])
-							current = item.symbol;
+						if (current != null)
+							return;
+						var sym = (prop as SymbolItem).symbol;
+						if (sym.name == names[i - 1])
+							current = sym;
 					});
+					if (current == null)
+						break;
 					list = new List<Gtk.SourceCompletionProposal>();
 					document.manager.engine.get_symbols_for_name (current, names[i], false).foreach (sym => {
 						list.append (new SymbolItem (sym));
