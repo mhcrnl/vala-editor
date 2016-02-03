@@ -223,14 +223,17 @@ namespace Editor {
 			return str_equal (symbol.name, other.name);
 		}
 		
-		public Gee.Collection<Vala.Symbol> get_symbols_for_name (Vala.Symbol symbol, string name, bool match, Vala.MemberBinding binding = Vala.MemberBinding.CLASS) {
+		public Gee.Collection<Vala.Symbol> get_symbols_for_name (Vala.Symbol? symbol, string name, bool match, Vala.MemberBinding binding = Vala.MemberBinding.CLASS) {
 			var hashset = new Gee.HashSet<Vala.Symbol?>(symbol_hash, symbol_equal);
-			foreach (var sym in gsfm (symbol, name, match, binding))
-				hashset.add (sym);
+			if (symbol != null)
+				foreach (var sym in gsfm (symbol, name, match, binding))
+					hashset.add (sym);
 			return hashset;
 		}
 		
-		Gee.Collection<Vala.Symbol> gsfm (Vala.Symbol symbol, string name, bool match, Vala.MemberBinding binding = Vala.MemberBinding.CLASS) {
+		Gee.Collection<Vala.Symbol> gsfm (Vala.Symbol? symbol, string name, bool match, Vala.MemberBinding binding = Vala.MemberBinding.CLASS) {
+			if (symbol == null)
+				return new Gee.ArrayList<Vala.Symbol>();
 			if (symbol is Vala.Parameter)
 				return gsfm ((symbol as Vala.Parameter).variable_type.data_type, name, match, Vala.MemberBinding.INSTANCE);
 			if (symbol is Vala.Property)

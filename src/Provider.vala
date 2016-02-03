@@ -35,6 +35,8 @@ namespace Editor {
 			member_access = new Regex ("""((?:\w+(?:\s*\([^()]*\))?\.)*)(\w*)$""");
 			member_access_split = new Regex ("""(\s*\([^()]*\))?\.""");
 			icon = new Gdk.Pixbuf.from_resource ("/resources/icons/gnome.png");
+			start_line = -1;
+			start_column = -1;
 		}
 		
 		public Document document { get; construct; }
@@ -131,6 +133,8 @@ namespace Editor {
 			for (var z = 0; z < result.length; z++) {
 				int index = result[z].index_of ("(");
 				string s = result[z].substring (0, index).strip();
+				if (z == result.length - 1)
+					s = result[z].substring (0, index);
 				if (index != -1)
 					s += "(";
 				if (index != -1 && index + 1 < result[z].length)
@@ -140,10 +144,29 @@ namespace Editor {
 			return string.joinv (".", result);
 		}
 		
+		int start_line;
+		int start_column;
+		/*
+		public bool activate_proposal (Gtk.SourceCompletionProposal proposal, Gtk.TextIter iter) {
+			Gtk.TextIter start;
+			document.view.buffer.get_iter_at_line_offset (out start, start_line, start_column);
+			string text = start.get_text (iter);
+			text = (proposal as SymbolItem).symbol.name.substring (text.length);
+			document.view.buffer.insert_at_cursor (text, text.length);
+			start_line = -1;
+			start_column = -1;
+			return false;
+		}
+		*/
+		
 		public void populate (Gtk.SourceCompletionContext context) {
-			var list = new List<Gtk.SourceCompletionProposal>();
 			Gtk.TextIter iter, start;
 			context.get_iter (out iter);
+			if (start_line != iter.get_line()) {
+				start_line = iter.get_line();
+				start_column = iter.get_line_offset() - 1;
+			}
+			var list = new List<Gtk.SourceCompletionProposal>();
 			string text = document.get_current_text (iter);
 			var ntext = normalize (text);
 			if (ntext == null)
@@ -154,6 +177,7 @@ namespace Editor {
 			if (match_info.fetch(0).length < 1)
 				return;
 			string prefix = match_info.fetch (2);
+		//	string prefix = text.substring (text.last_index_of (match_info.fetch (2)));
 			var names = member_access_split.split (match_info.fetch (1));
 			document.visible_symbols.foreach (sym => {
 				if (sym != null && sym.name.has_prefix (prefix))
