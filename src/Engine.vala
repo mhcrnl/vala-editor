@@ -1,9 +1,55 @@
 namespace Editor {
+	public class Package : GLib.Object {
+		public Package (string id, string name, string description) {
+			GLib.Object (id: id, name: name, description: description);
+		}
+		
+		public string description { get; construct; }
+		public string id { get; construct; }
+		public string name { get; construct; }
+	}
+	
 	public class Engine : GLib.Object, Gtk.SourceCompletionProvider {
 		Vala.CodeContext context;
 		Vala.Parser parser;
 		BlockLocator locator;
 		Report report;
+		
+		static Gee.ArrayList<Package> packages;
+		
+		static Package process_line (string line) {
+			string description, id, name;
+			StringBuilder sb = new StringBuilder();
+			int i = 0;
+			while (!line[i].isspace()) {
+				sb.append_c (line[i]);
+				i++;
+			}
+			id = sb.str;
+			sb = new StringBuilder();
+			while (line[i].isspace())
+				i++;
+			name = line.substring (i);
+			description = name.split (" - ")[1];
+			name = name.split (" - ")[0];
+			return new Package (id, name, description);
+		}
+		
+		static construct {
+			packages = new Gee.ArrayList<Package>((p1, p2) => {
+				return (p1.id == p2.id && p1.name == p2.name && p1.description == p2.description);
+			});
+			
+			string output, err;
+			Process.spawn_command_line_sync ("pkg-config --list-all", out output, out err);
+			output = output.strip();
+			foreach (string line in output.split ("\n"))
+				packages.add (process_line (line));
+		}
+		
+		public static Gee.List<Package> list_packages() {
+			return packages;
+		}
 		
 		construct {
 			report = new Report();
@@ -55,11 +101,24 @@ namespace Editor {
 			}
 		}
 	
+		public Gee.Iterator<Package> list_available_packages() {
+			return packages.filter (package => {
+				return context.get_vapi_path (package.id) != null || context.get_gir_path (package.id) != null;
+			});
+		}
 		
 		public bool package_exists (string package) {
 			if (context.get_vapi_path (package) == null && context.get_gir_path (package) == null)
 				return false;
-			return true;
+			bool result = false;
+			packages.foreach (pkg => {
+				if (pkg.id == package) {
+					result = true;
+					return false;
+				}
+				return true;
+			});
+			return result;
 		}
 		
 		public bool add_package (string package) {
@@ -172,6 +231,16 @@ namespace Editor {
 				// add missing local variables.
 				foreach (var lv in (sym as Vala.Method).body.get_local_variables())
 					list.add (lv);
+			}
+			if (sym is Vala.Class) {
+				var klass = sym as Vala.Class;
+				foreach (var bt in klass.get_base_types())
+					list.add_all (lookup_symbol_inherited (bt.data_type));
+			}
+			if (sym is Vala.Interface) {
+				var iface = sym as Vala.Interface;
+				foreach (var pre in iface.get_prerequisites())
+					list.add_all (lookup_symbol_inherited (pre.data_type));
 			}
 			if (sym is Vala.Method && !(sym.parent_symbol is Vala.Block) && prev_binding != Vala.MemberBinding.STATIC) {
 				prev_binding = (sym as Vala.Method).binding;
