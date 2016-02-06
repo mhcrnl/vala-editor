@@ -155,5 +155,8 @@ internal class BlockLocator : Vala.CodeVisitor {
 	public override void visit_method_call (Vala.MethodCall mc) {
 		mc.accept_children (this);
 	}
+	public override void visit_signal (Vala.Signal sig) {
+		sig.accept_children (this);
+	}
 }
 

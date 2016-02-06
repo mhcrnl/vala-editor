@@ -30,7 +30,10 @@ namespace Editor {
 		public new void add (Document document) {
 			document.manager = this;
 			engine.add_document (document);
-			append_page (document, new Gtk.Label (document.title));
+			var label = new Gtk.Label (document.title);
+			append_page (document, label);
+			set_tab_reorderable (label, true);
+			set_tab_detachable (label, true);
 		}
 		
 		public bool contains (string path) {

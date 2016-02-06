@@ -41,7 +41,7 @@ icons.c:
 	glib-compile-resources resources.xml --sourcedir=$(srcdir) --generate-source --target=$@
 
 vala_editor_VALASOURCES = Document.vala DocumentManager.vala Engine.vala Locator.vala main.vala Provider.vala Window.vala \
-	Project.vala Report.vala ReportTable.vala FileSourceView.vala Assistant.vala
+	Project.vala Report.vala ReportTable.vala FileSourceView.vala Assistant.vala ProjectAssistant.vala
 
 vala_editor_SOURCES = icons.c $(vala_editor_VALASOURCES:.vala=.c)
 	

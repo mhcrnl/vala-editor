@@ -18,7 +18,8 @@
 		"src/Report.vala",
 		"src/ReportTable.vala",
 		"src/FileSourceView.vala",
-		"src/Assistant.vala"
+		"src/Assistant.vala",
+		"src/ProjectAssistant.vala"
 	],
 	"flags" : {
 		"gresources" : "resources.xml",

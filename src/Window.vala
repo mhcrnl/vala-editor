@@ -55,19 +55,12 @@ namespace Editor {
 			
 			var button = new Gtk.MenuButton();
 			var menu = new Gtk.Menu();
-			var fileitem = new Gtk.MenuItem.with_label ("File");
-			fileitem.activate.connect (() => {
-				var dialog = new FileChooserDialog (this, "Open file(s)");
-				if (dialog.run() == Gtk.ResponseType.OK) {
-					foreach (var file in dialog.get_filenames())
-						if (!(file in manager))
-							manager.add_document (file);
-					manager.show_all();
-					manager.engine.parse();
-				}
-				dialog.destroy();
+			var newitem = new Gtk.MenuItem.with_label ("New project");			
+			newitem.activate.connect (() => {
+				var assistant = new ProjectAssistant();
+				assistant.update_packages (manager.engine.list_available_packages());
+				assistant.show_all();
 			});
-			
 			var prjitem = new Gtk.MenuItem.with_label ("Open project");
 			prjitem.activate.connect (() => {
 				var dialog = new ProjectChooserDialog (this);
@@ -88,7 +81,7 @@ namespace Editor {
 			
 			var quititem = new Gtk.MenuItem.with_label ("Quit");
 			quititem.activate.connect (Gtk.main_quit);
-			menu.add (fileitem);
+			menu.add (newitem);
 			menu.add (prjitem);
 			menu.add (new Gtk.SeparatorMenuItem());
 			menu.add (quititem);

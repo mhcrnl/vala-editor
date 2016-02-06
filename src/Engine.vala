@@ -45,6 +45,9 @@ namespace Editor {
 			output = output.strip();
 			foreach (string line in output.split ("\n"))
 				packages.add (process_line (line));
+			packages.sort ((p1, p2) => {
+				return strcmp (p1.id, p2.id);
+			});
 		}
 		
 		public static Gee.List<Package> list_packages() {
@@ -227,6 +230,10 @@ namespace Editor {
 								list.add (child);
 					}
 				}
+			if (sym is Vala.Signal) {
+				var sig = sym as Vala.Signal;
+				foreach (var p in sig.get_parameters()) {}
+			}
 			if (sym is Vala.Method) {
 				// add missing local variables.
 				foreach (var lv in (sym as Vala.Method).body.get_local_variables())
@@ -255,6 +262,7 @@ namespace Editor {
 			var symbol = lookup_symbol_at (filename, line, column);
 			if (symbol == null)
 				symbol = lookup_symbol_at (filename, line - 1, column);
+			print ("symbol : %s\n", symbol.to_string());
 			var hashset = new Gee.HashSet<Vala.Symbol?>(symbol_hash, symbol_equal);
 			var list = lookup_symbol (symbol);
 			if (symbol != null)

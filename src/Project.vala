@@ -15,6 +15,36 @@ namespace Editor {
 			flags = new Gee.HashMap<string, string>();
 		}
 		
+		public virtual signal bool save (string location) {
+			var object = new Json.Object();
+			object.set_string_member ("name", name);
+			var pkg_array = new Json.Array();
+			packages.foreach (package => {
+				pkg_array.add_string_element (package);
+				return true;
+			});
+			var src_array = new Json.Array();
+			sources.foreach (source => {
+				src_array.add_string_element (source);
+				return true;
+			});
+			object.set_array_member ("sources", src_array);
+			object.set_array_member ("packages", pkg_array);
+			var node = new Json.Node.alloc();
+			node.init_object (object);
+			var gen = new Json.Generator();
+			gen.set_root (node);
+			gen.pretty = true;
+			gen.indent_char = '\t';
+			try {
+				gen.to_file (location);
+				return true;
+			}
+			catch {
+				return false;
+			}
+		}
+		
 		public static Project? load (string filename) {
 			try {
 				var parser = new Json.Parser();
