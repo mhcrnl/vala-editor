@@ -17,8 +17,7 @@ namespace Editor {
 			store.clear();
 			var symbol = new Symbol (root);
 			foreach (var child in symbol.get_children())
-				if (!child.name.has_prefix ("G"))
-					append_symbol (child);
+				append_symbol (child);
 		}
 		
 		void append_symbol (Symbol symbol, Gtk.TreeIter? parent = null) {

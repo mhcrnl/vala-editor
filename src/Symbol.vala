@@ -13,7 +13,6 @@ namespace Editor {
 	
 	public class Symbol : GLib.Object {
 		internal Vala.Symbol vsymbol;
-		internal Vala.Comment comment;
 		internal Vala.SourceReference source_reference;
 		
 		internal Symbol (Vala.Symbol vsymbol) {
@@ -21,17 +20,8 @@ namespace Editor {
 			source_reference = vsymbol.source_reference;
 		}
 		
-		internal Symbol.from_comment (Vala.Comment comment) {
-			this.comment = comment;
-			source_reference = comment.source_reference;
-		}
-		
 		public List<Symbol> get_children() {
 			var list = new List<Symbol>();
-			if (comment != null)
-				return list;
-			if (vsymbol.comment != null)
-				list.append (new Symbol.from_comment (vsymbol.comment));
 			if (vsymbol is Vala.Namespace) {
 				var symbol = vsymbol as Vala.Namespace;
 				foreach (var sym in symbol.get_namespaces())
@@ -56,8 +46,6 @@ namespace Editor {
 					list.append (new Symbol (sym));
 				foreach (var sym in symbol.get_structs())
 					list.append (new Symbol (sym));
-				foreach (var sym in symbol.get_comments())
-					list.append (new Symbol.from_comment (sym));
 			}
 			
 			if (vsymbol is Vala.Interface) {
@@ -152,10 +140,8 @@ namespace Editor {
 		
 		public GLib.Icon icon {
 			owned get {
-				if (comment != null)
-					return new BytesIcon (resources_lookup_data ("/resources/icons/comment.png", ResourceLookupFlags.NONE));
 				return new BytesIcon (resources_lookup_data ("/resources/icons/%s.png".printf (vsymbol.type_name.substring (4).down()),
-				ResourceLookupFlags.NONE));
+					ResourceLookupFlags.NONE));
 			}
 		}
 		
