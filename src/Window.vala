@@ -52,7 +52,7 @@ namespace Editor {
 			manager.engine.begin_parsing.connect (table.clear);
 			manager.engine.end_parsing.connect (report => {
 				table.update (report);
-				tree.root = manager.engine.get_root();
+				tree.update (manager.engine.get_root());
 			});
 			var bar = new Gtk.HeaderBar();
 			bar.show_close_button = true;
@@ -91,15 +91,17 @@ namespace Editor {
 			bar.pack_start (button);
 			set_titlebar (bar);
 			
-			var paned = new Gtk.Paned (Gtk.Orientation.VERTICAL);
-			paned.add1 (manager);
-			paned.add2 (table);
+			var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
+			vbox.pack_start (manager);
+			table.height_request = 200;
+			vbox.pack_start (table, false, false);
 			
-			var vpaned = new Gtk.Paned (Gtk.Orientation.HORIZONTAL);
-			vpaned.add1 (paned);
-			vpaned.add2 (tree);
+			var hbox = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+			hbox.pack_start (vbox);
+			tree.width_request = 400;
+			hbox.pack_start (tree, false, false);
 			
-			add (vpaned);
+			add (hbox);
 		}
 	}
 }

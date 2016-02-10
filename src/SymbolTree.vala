@@ -11,14 +11,14 @@ namespace Editor {
 			add (view);
 			
 			//TODO : check graphic bug on treeview
-			//notify["root"].connect (update_tree);
 		}
 		
-		void update_tree() {
+		public void update (Vala.Namespace root) {
 			store.clear();
 			var symbol = new Symbol (root);
 			foreach (var child in symbol.get_children())
-				append_symbol (child);
+				if (!child.name.has_prefix ("G"))
+					append_symbol (child);
 		}
 		
 		void append_symbol (Symbol symbol, Gtk.TreeIter? parent = null) {
@@ -28,7 +28,5 @@ namespace Editor {
 			foreach (var child in symbol.get_children())
 				append_symbol (child, iter);
 		}
-		
-		public Vala.Namespace root { get; set; }
 	}
 }
