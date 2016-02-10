@@ -29,6 +29,7 @@ internal class BlockLocator : Vala.CodeVisitor {
 			var end = Location (src.end.line, src.end.column);
 			return begin.before (this) && this.before(end);
 		}
+		
 		public bool before (Location other) {
 			if (line > other.line)
 				return false;
@@ -42,8 +43,10 @@ internal class BlockLocator : Vala.CodeVisitor {
 	Vala.Symbol innermost;
 	Location innermost_begin;
 	Location innermost_end;
+	string filename;
 
 	public Vala.Symbol locate (Vala.SourceFile file, int line, int column) {
+		filename = file.filename;
 		location = Location (line, column);
 		innermost = null;
 		file.accept_children(this);
@@ -51,6 +54,8 @@ internal class BlockLocator : Vala.CodeVisitor {
 	}
 
 	bool update_location (Vala.Symbol s) {
+		if (s.source_reference.file.filename != filename)
+			return false;
 		if (!location.inside (s.source_reference))
 			return false;
 
@@ -147,7 +152,12 @@ internal class BlockLocator : Vala.CodeVisitor {
 	}
 	// add these functions.
 	public override void visit_lambda_expression (Vala.LambdaExpression expr) {
-		expr.accept_children (this);
+		if (expr.statement_body != null) {
+			if (update_location (expr.statement_body))
+				expr.statement_body.accept_children(this);
+		}
+		else
+			expr.accept_children (this);
 	}
 	public override void visit_expression_statement (Vala.ExpressionStatement stmt) {
 		stmt.accept_children (this);

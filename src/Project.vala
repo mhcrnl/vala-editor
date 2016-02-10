@@ -1,12 +1,14 @@
 namespace Editor {
 	public class Project : GLib.Object {
 		public string name { get; construct; }
+		public string location { get; construct; }
+
 		public Gee.ArrayList<string> packages { get; private set; }
 		public Gee.ArrayList<string> sources { get; private set; }
 		public Gee.HashMap<string, string> flags { get; private set; }
 		
-		public Project (string name) {
-			GLib.Object (name: name);
+		public Project (string name, string location) {
+			GLib.Object (name: name, location: location);
 		}
 
 		construct {
@@ -15,7 +17,7 @@ namespace Editor {
 			flags = new Gee.HashMap<string, string>();
 		}
 		
-		public virtual signal bool save (string location) {
+		public virtual signal bool save() {
 			var object = new Json.Object();
 			object.set_string_member ("name", name);
 			var pkg_array = new Json.Array();
@@ -60,7 +62,7 @@ namespace Editor {
 					return null;
 				if (!object.has_member ("packages") || object.get_member("packages").get_node_type() != Json.NodeType.ARRAY)
 					return null;
-				var project = new Project (object.get_string_member ("name"));
+				var project = new Project (object.get_string_member ("name"), filename);
 				
 				object.get_array_member("packages").foreach_element ((array, index, node) => {
 					if (project == null)

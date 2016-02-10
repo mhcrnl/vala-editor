@@ -63,6 +63,16 @@ namespace Editor {
 			parser = new Vala.Parser();
 			parser.parse (context);
 		}
+
+		public void init() {
+			report = new Report();
+			locator = new BlockLocator();
+			context = new Vala.CodeContext();
+			context.report = report;
+			context.profile = Vala.Profile.GOBJECT;
+			parser = new Vala.Parser();
+			parser.parse (context);
+		}
 		
 		public Project? load_project (string filename) {
 			try {
@@ -78,7 +88,7 @@ namespace Editor {
 					return null;
 				if (!object.has_member ("packages") || object.get_member("packages").get_node_type() != Json.NodeType.ARRAY)
 					return null;
-				var project = new Project (object.get_string_member ("name"));
+				var project = new Project (object.get_string_member ("name"), filename);
 				object.get_array_member("packages").foreach_element ((array, index, node) => {
 					if (project == null)
 						return;			
@@ -136,13 +146,6 @@ namespace Editor {
 					return;
 				}
 			}
-			document.saved.connect (() => {
-				foreach (var file in context.get_source_files())
-					if (file.filename == document.location) {
-						file.content = document.view.buffer.text;
-						update_file (file);
-					}
-			});
 			context.add_source_filename (document.location);
 			if (!context.has_package ("gobject-2.0")) {
 				context.add_external_package ("glib-2.0");
@@ -151,41 +154,30 @@ namespace Editor {
 			Vala.CodeContext.pop();
 		}
 		
-		public bool remove_source (string filename) {
-			return false;
-		}
-		
-		void update_file (Vala.SourceFile file) {
-			lock (context) {
-				var nodes = new Gee.ArrayList<Vala.CodeNode>();
-				foreach (var node in file.get_nodes())
-					nodes.add (node);
-				foreach (var node in nodes) {
-					file.remove_node (node);
-					if (node is Vala.Symbol) {
-						var sym = (Vala.Symbol)node;
-						if (sym.owner != null)
-							sym.owner.remove (sym.name);
-						if (context.entry_point == sym)
-							context.entry_point = null;
-					}
+		public void add_source (string source) {
+			Vala.CodeContext.push (context);
+			foreach (var file in context.get_source_files()) {
+				if (file.filename == source) {
+					Vala.CodeContext.pop();
+					return;
 				}
-				file.current_using_directives = new Vala.ArrayList<Vala.UsingDirective>();
-				var ns_ref = new Vala.UsingDirective (new Vala.UnresolvedSymbol (null, "GLib"));
-				file.add_using_directive (ns_ref);
-				context.root.add_using_directive (ns_ref);
-				clear();
-				report.clear (file);
-				parse();
 			}
+			context.add_source_filename (source);
+			if (!context.has_package ("gobject-2.0")) {
+				context.add_external_package ("glib-2.0");
+				context.add_external_package ("gobject-2.0");
+			}
+			Vala.CodeContext.pop();
 		}
 		
 		public Vala.Symbol? lookup_symbol_at (string filename, int line, int column) {
 			Vala.SourceFile? source = null;
 			lock (context) {
 				foreach (var file in context.get_source_files()) {
-					if (file.filename == filename) 
+					if (file.filename == filename)  {
 						source = file;
+						break;
+					}
 				}
 			}
 			if (source == null)
@@ -203,8 +195,9 @@ namespace Editor {
 			prev_binding = Vala.MemberBinding.CLASS;
 			prev_access = false;
 			lock (context) {
-				for (var sym = symbol; sym != null; sym = sym.parent_symbol)
+				for (var sym = symbol; sym != null; sym = sym.parent_symbol) {
 					list.add_all (lookup_symbol_inherited (sym));
+				}
 				foreach (var ns in symbol.source_reference.file.current_using_directives)
 					list.add_all (lookup_symbol_inherited (ns.namespace_symbol));
 			}
@@ -262,11 +255,10 @@ namespace Editor {
 			var symbol = lookup_symbol_at (filename, line, column);
 			if (symbol == null)
 				symbol = lookup_symbol_at (filename, line - 1, column);
-			print ("symbol : %s\n", symbol.to_string());
 			var hashset = new Gee.HashSet<Vala.Symbol?>(symbol_hash, symbol_equal);
 			var list = lookup_symbol (symbol);
 			if (symbol != null)
-				hashset.add_all (lookup_symbol (symbol));
+				hashset.add_all (list);
 			/*
 			lock (context) {
 				foreach (var file in context.get_source_files()) {
@@ -541,9 +533,14 @@ namespace Editor {
 		}
 		
 		public signal void end_parsing (Report report);
-		public signal void clear();
+		public signal void begin_parsing();
+		
+		public Vala.Namespace get_root() {
+			return context.root;
+		}
 		
 		public void parse() {
+			begin_parsing();
 			try {
 				Thread.create<void>(() => {
 					lock (context) {

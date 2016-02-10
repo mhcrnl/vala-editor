@@ -14,7 +14,8 @@ namespace Editor {
 			entry.editable = false;
 			var button = new Gtk.FileChooserButton ("Create folder", Gtk.FileChooserAction.SELECT_FOLDER);
 			button.file_set.connect (() => {
-				project = new Project (button.get_file().get_basename());
+				var basename = button.get_file().get_basename();
+				project = new Project (basename, button.get_file().get_path() + "/" + basename + ".edi");
 				entry.text = button.get_file().get_basename();
 			});
 			button.create_folders = true;

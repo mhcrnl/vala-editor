@@ -19,7 +19,9 @@
 		"src/ReportTable.vala",
 		"src/FileSourceView.vala",
 		"src/Assistant.vala",
-		"src/ProjectAssistant.vala"
+		"src/ProjectAssistant.vala",
+		"src/Symbol.vala",
+		"src/SymbolTree.vala"
 	],
 	"flags" : {
 		"gresources" : "resources.xml",

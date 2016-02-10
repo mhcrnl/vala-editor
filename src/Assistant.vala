@@ -38,7 +38,6 @@ namespace Editor {
 			set_page_type (page.widget, page.page_type);
 			set_page_complete (page.widget, page.complete);
 			page.completed.connect (complete => {
-				print ("page : %s, complete : %s\n", page.title, complete.to_string());
 				set_page_complete (page.widget, complete);
 			});
 			return true;

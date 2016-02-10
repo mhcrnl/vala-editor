@@ -41,14 +41,19 @@ namespace Editor {
 	public class Window : Gtk.Window {
 		DocumentManager manager;
 		ReportTable table;
+		SymbolTree tree;
 		
 		construct {
 			destroy.connect (Gtk.main_quit);
 			
+			tree = new SymbolTree();
 			table = new ReportTable();
 			manager = new DocumentManager();
-			manager.engine.clear.connect (table.clear);
-			manager.engine.end_parsing.connect (table.update);
+			manager.engine.begin_parsing.connect (table.clear);
+			manager.engine.end_parsing.connect (report => {
+				table.update (report);
+				tree.root = manager.engine.get_root();
+			});
 			var bar = new Gtk.HeaderBar();
 			bar.show_close_button = true;
 			bar.title = "Editor";
@@ -69,12 +74,7 @@ namespace Editor {
 					project = manager.load_project (dialog.get_filename());
 				}
 				if (project != null) {
-					foreach (var src in project.sources)
-						manager.add_document (src);
-					foreach (var pkg in project.packages)
-						manager.engine.add_package (pkg);
-					manager.show_all();
-					manager.engine.parse();
+					manager.project = project;
 				}
 				dialog.destroy();
 			});
@@ -94,7 +94,12 @@ namespace Editor {
 			var paned = new Gtk.Paned (Gtk.Orientation.VERTICAL);
 			paned.add1 (manager);
 			paned.add2 (table);
-			add (paned);
+			
+			var vpaned = new Gtk.Paned (Gtk.Orientation.HORIZONTAL);
+			vpaned.add1 (paned);
+			vpaned.add2 (tree);
+			
+			add (vpaned);
 		}
 	}
 }

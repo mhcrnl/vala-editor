@@ -217,7 +217,6 @@ namespace Editor {
 					});
 				}
 			}
-			
 			CompareFunc<Gtk.SourceCompletionProposal> cmp = (a, b) => {
 				var na = (a as SymbolItem).symbol.name;
 				var nb = (b as SymbolItem).symbol.name;

@@ -1,4 +1,9 @@
 namespace Editor {
+	public enum DocumentState {
+		NONE,
+		EDITING
+	}
+
 	public class Document : FileSourceView {
 		public Document (string path) {
 			base (path);
@@ -9,6 +14,7 @@ namespace Editor {
 		string tooltip_message;
 		Gtk.TextTag warning_tag;
 		Gtk.TextTag error_tag;
+		string old_content;
 		
 		construct {
 			view.has_tooltip = false;
@@ -23,11 +29,16 @@ namespace Editor {
 			});
 			
 			view.key_press_event.connect (event => {
+				if (old_content == null) {
+					old_content = view.buffer.text;
+				}
+
 				view.has_tooltip = false;
 				return false;
 			});
 			
-			view.button_press_event.connect (event => {
+			view.button_press_event.connect (evt => {
+				
 				view.has_tooltip = false;
 				return false;
 			});
@@ -114,6 +125,7 @@ namespace Editor {
 		
 		public DocumentManager manager { get; internal set; }
 		public Provider provider { get; private set; }
+		public DocumentState state { get; private set; }
 		
 		public Vala.Symbol current_context {
 			owned get {
