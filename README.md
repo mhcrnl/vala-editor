@@ -2,6 +2,8 @@
 
 #### *Vala IDE* ####
 
+![](http://imgur.com/RicQ3U4l.png)
+
 Discussion and support on IRC channel [#canaldev](http://webchat.freenode.net/?channels=#canaldev) (freenode).
 
 ## Manual installation ##
