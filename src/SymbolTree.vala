@@ -8,7 +8,7 @@ namespace Editor {
 			var view = new Gtk.TreeView.with_model (store);
 			view.insert_column_with_attributes (-1, null, new Gtk.CellRendererPixbuf(), "gicon", 0);
 			view.insert_column_with_attributes (-1, null, new Gtk.CellRendererText(), "text", 1);
-			
+			string s = "toto";
 			add (view);
 		}
 		

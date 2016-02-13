@@ -72,7 +72,25 @@ namespace Editor {
 			document.saved.connect (update);
 			document.manager = this;
 			engine.add_document (document);
-			append_page (document, new Gtk.Label (document.title));
+
+			var tab = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+			var icon = new Gtk.Image.from_icon_name ("document", Gtk.IconSize.BUTTON);
+			var label = new Gtk.Label (document.title);
+			var button  = new Gtk.Button.from_icon_name ("dialog-close", Gtk.IconSize.BUTTON);
+			tab.pack_start (icon, false, false);
+			tab.pack_start (label);
+			tab.pack_end (button, false, false);
+
+			document.editing.connect (edit => {
+				icon.icon_name = edit ? "mail-message-new" : "document";
+			});
+			
+			int i = prepend_page (document, tab);
+			button.clicked.connect (() => {
+				this.remove (get_nth_page (i));
+			});
+			tab.show_all();
+			set_tab_reorderable (get_nth_page (i), true);
 		}
 		
 		public Project? load_project (string filename) {

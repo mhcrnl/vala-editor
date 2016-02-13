@@ -1,9 +1,4 @@
 namespace Editor {
-	public enum DocumentState {
-		NONE,
-		EDITING
-	}
-
 	public class Document : FileSourceView {
 		public Document (string path) {
 			base (path);
@@ -17,6 +12,10 @@ namespace Editor {
 		string old_content;
 		
 		construct {
+			old_content = view.buffer.text;
+			saved.connect (() => {
+				old_content = view.buffer.text;
+			});
 			view.has_tooltip = false;
 			view.show_line_numbers = true;
 			view.background_pattern = Gtk.SourceBackgroundPatternType.GRID;
@@ -29,9 +28,7 @@ namespace Editor {
 			});
 			
 			view.key_press_event.connect (event => {
-				if (old_content == null) {
-					old_content = view.buffer.text;
-				}
+				editing (old_content != view.buffer.text);
 
 				view.has_tooltip = false;
 				return false;
@@ -122,10 +119,11 @@ namespace Editor {
 			Gtk.TextIter end = location_to_iter (err.source.end, true);
 			buffer.apply_tag (warning_tag, begin, end);
 		}
+
+		public signal void editing (bool edit);
 		
 		public DocumentManager manager { get; internal set; }
 		public Provider provider { get; private set; }
-		public DocumentState state { get; private set; }
 		
 		public Vala.Symbol current_context {
 			owned get {

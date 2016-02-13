@@ -54,6 +54,15 @@ namespace Editor {
 			return packages;
 		}
 		
+		public static Gee.Iterator<Package> list_available_packages() {
+			var context = new Vala.CodeContext();
+			context.profile = Vala.Profile.GOBJECT;
+			
+			return packages.filter (package => {
+				return context.get_vapi_path (package.id) != null || context.get_gir_path (package.id) != null;
+			});
+		}
+		
 		construct {
 			report = new Report();
 			locator = new BlockLocator();
@@ -114,12 +123,6 @@ namespace Editor {
 			}
 		}
 	
-		public Gee.Iterator<Package> list_available_packages() {
-			return packages.filter (package => {
-				return context.get_vapi_path (package.id) != null || context.get_gir_path (package.id) != null;
-			});
-		}
-		
 		public bool package_exists (string package) {
 			if (context.get_vapi_path (package) == null && context.get_gir_path (package) == null)
 				return false;

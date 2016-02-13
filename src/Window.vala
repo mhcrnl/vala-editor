@@ -64,7 +64,6 @@ namespace Editor {
 			var newitem = new Gtk.MenuItem.with_label ("New project");			
 			newitem.activate.connect (() => {
 				var assistant = new ProjectAssistant();
-				assistant.update_packages (manager.engine.list_available_packages());
 				assistant.show_all();
 			});
 			var prjitem = new Gtk.MenuItem.with_label ("Open project");

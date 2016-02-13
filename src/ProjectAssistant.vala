@@ -1,7 +1,48 @@
 namespace Editor {
+	public class PackageView : Gtk.ScrolledWindow {
+		Gtk.ListStore store;
+		
+		construct {
+			hscrollbar_policy = Gtk.PolicyType.NEVER;
+			store = new Gtk.ListStore (3, typeof (bool), typeof (string), typeof (string));
+			var view = new Gtk.TreeView.with_model (store);
+			
+			var toggle = new Gtk.CellRendererToggle();
+			toggle.toggled.connect (path => {
+				var tpath = new Gtk.TreePath.from_string (path);
+				Gtk.TreeIter iter;
+				store.get_iter (out iter, tpath);
+				store.set (iter, 0, !toggle.active);
+			});
+			view.insert_column_with_attributes (-1, null, toggle, "active", 0);
+			view.insert_column_with_attributes (-1, "name", new Gtk.CellRendererText(), "text", 1);
+			view.insert_column_with_attributes (-1, "description", new Gtk.CellRendererText(), "text", 2);
+			
+			Engine.list_available_packages().foreach (pkg => {
+				Gtk.TreeIter iter;
+				store.append (out iter);
+				store.set (iter, 0, false, 1, pkg.id, 2, pkg.description);
+				return true;
+			});
+			
+			add (view);
+		}
+		
+		public string[] get_packages() {
+			var result = new GenericArray<string>();
+			store.foreach ((model, path, iter) => {
+				GLib.Value b, n;
+				model.get_value (iter, 0, out b);
+				model.get_value (iter, 1, out n);
+				if ((bool)b)
+					result.add ((string)n);
+				return false;
+			});
+			return result.data;
+		}
+	}
+	
 	public class ProjectAssistant : Assistant {
-		Gtk.ListStore packages_store;
-
 		construct {
 			var page1 = new AssistantPage ("Introduction");
 			page1.widget = new Gtk.Label ("Introduction");
@@ -14,6 +55,7 @@ namespace Editor {
 			entry.editable = false;
 			var button = new Gtk.FileChooserButton ("Create folder", Gtk.FileChooserAction.SELECT_FOLDER);
 			button.file_set.connect (() => {
+				page2.complete = true;
 				var basename = button.get_file().get_basename();
 				project = new Project (basename, button.get_file().get_path() + "/" + basename + ".edi");
 				entry.text = button.get_file().get_basename();
@@ -23,26 +65,12 @@ namespace Editor {
 			box.pack_start (entry, false, false);
 			box.pack_start (button, false, false);
 			page2.widget = box;
-			page2.complete = true;
+			page2.complete = false;
 			
-			packages_store  = new Gtk.ListStore (3, typeof (bool), typeof (string), typeof (string));
-			var packages_view = new Gtk.TreeView.with_model (packages_store);
-			var toggle = new Gtk.CellRendererToggle();
-			toggle.toggled.connect (path => {
-				var tpath = new Gtk.TreePath.from_string (path);
-				Gtk.TreeIter iter;
-				packages_store.get_iter (out iter, tpath);
-				packages_store.set (iter, 0, !toggle.active);
-			});
-			packages_view.insert_column_with_attributes (-1, null, toggle, "active", 0);
-			packages_view.insert_column_with_attributes (-1, "name", new Gtk.CellRendererText(), "text", 1);
-			packages_view.insert_column_with_attributes (-1, "description", new Gtk.CellRendererText(), "text", 2);
-			var sw = new Gtk.ScrolledWindow (null, null);
-			sw.hscrollbar_policy = Gtk.PolicyType.NEVER;
-			sw.add (packages_view);
+			var package_view = new PackageView();
 
 			var page4 = new AssistantPage ("Packages", Gtk.AssistantPageType.CONTENT);
-			page4.widget = sw;
+			page4.widget = package_view;
 			page4.complete = true;
 
 			var page3 = new AssistantPage ("Summary", Gtk.AssistantPageType.CONFIRM);
@@ -54,7 +82,9 @@ namespace Editor {
 			add_page (page3);
 			
 			apply.connect (() => {
-				
+				if (project != null)
+					foreach (var package in package_view.get_packages())
+						project.packages.add (package);
 				destroy();
 			});
 			cancel.connect (() => {
@@ -62,16 +92,6 @@ namespace Editor {
 			});
 			escape.connect (() => {
 				destroy();
-			});
-		}
-
-		public void update_packages (Gee.Iterator<Package> iterator) {
-			packages_store.clear();
-			iterator.foreach (package => {
-				Gtk.TreeIter iter;
-				packages_store.append (out iter);
-				packages_store.set (iter, 0, false, 1, package.id, 2, package.description);
-				return true;
 			});
 		}
 
