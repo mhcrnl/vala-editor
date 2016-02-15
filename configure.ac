@@ -27,7 +27,7 @@ AC_ARG_WITH(
 
 AC_SUBST(VALA_VERSION)
 
-PKG_CHECK_MODULES(EDITOR, [gtksourceview-3.0 json-glib-1.0 gee-0.8 libvala-$VALA_VERSION])
+PKG_CHECK_MODULES(EDITOR, [gtksourceview-3.0 granite json-glib-1.0 gee-0.8 libvala-$VALA_VERSION])
 AC_SUBST(EDITOR_CFLAGS)
 AC_SUBST(EDITOR_LIBS)
 

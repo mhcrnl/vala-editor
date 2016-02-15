@@ -4,7 +4,8 @@
 		"libvala-@VALA_VERSION@",
 		"gtksourceview-3.0",
 		"json-glib-1.0",
-		"gee-0.8"
+		"gee-0.8",
+		"granite"
 	],
 	"sources" : [
 		"src/Document.vala",

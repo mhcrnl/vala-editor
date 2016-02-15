@@ -41,19 +41,20 @@ namespace Editor {
 	public class Window : Gtk.Window {
 		DocumentManager manager;
 		ReportTable table;
-		//SymbolTree tree;
+		SymbolTree tree;
 		
 		construct {
 			destroy.connect (Gtk.main_quit);
 			
-			//tree = new SymbolTree();
-			//tree.updated.connect (() => { print ("done\n"); });
+			tree = new SymbolTree();
+			tree.width_request = 200;
+			tree.updated.connect (() => { print ("done\n"); });
 			table = new ReportTable();
 			manager = new DocumentManager();
 			manager.engine.begin_parsing.connect (table.clear);
 			manager.engine.end_parsing.connect (report => {
 				table.update (report);
-			//	tree.update (manager.engine.get_root());
+				tree.update (manager.engine.get_root());
 			});
 			var bar = new Gtk.HeaderBar();
 			bar.show_close_button = true;
@@ -96,7 +97,11 @@ namespace Editor {
 			table.height_request = 200;
 			vbox.pack_start (table, false, false);
 			
-			add (vbox);
+			var hbox = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+			hbox.pack_start (vbox);
+			hbox.pack_start (tree, false, false);
+			
+			add (hbox);
 		}
 	}
 }

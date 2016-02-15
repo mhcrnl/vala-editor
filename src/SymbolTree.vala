@@ -32,8 +32,8 @@ namespace Editor {
 			Gtk.TreeIter iter;
 			store.append (out iter, parent);
 			store.set (iter, 0, symbol.icon, 1, symbol.name);
-			foreach (var child in symbol.get_children())
-				append_symbol (child, iter);
+			//foreach (var child in symbol.get_children())
+			//	append_symbol (child, iter);
 		}
 	}
 }
