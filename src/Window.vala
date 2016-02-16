@@ -48,6 +48,7 @@ namespace Editor {
 			
 			tree = new SymbolTree();
 			tree.width_request = 200;
+			tree.symbol_activated.connect (symbol => { print ("symbol : %s\n", symbol.name); });
 			tree.updated.connect (() => { print ("done\n"); });
 			table = new ReportTable();
 			manager = new DocumentManager();
