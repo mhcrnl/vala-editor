@@ -48,7 +48,7 @@ vala_editor_SOURCES = icons.c $(vala_editor_VALASOURCES:.vala=.c)
 	
 vala_editor_LDADD = $(EDITOR_LIBS)
 vala_editor_VALAFLAGS = --pkg gtksourceview-3.0 --pkg json-glib-1.0 --pkg gee-0.8 \
-	--pkg granite --pkg libvala-$(VALA_VERSION) --gresources resources.xml --target-glib=2.38 -g
+	--pkg libvala-$(VALA_VERSION) --gresources resources.xml --target-glib=2.38 -g
 
 $(vala_editor_VALASOURCES:.vala=.c): vala.stamp
 
