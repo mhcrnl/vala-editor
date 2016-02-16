@@ -41,10 +41,61 @@ namespace Editor {
 		public Gtk.MessageType message_type { get; set; }
 	}
 	
+	public class SearchBar : Gtk.Revealer {
+		Gtk.SearchEntry entry;
+		
+		construct {
+			var box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+			entry = new Gtk.SearchEntry();
+			entry.key_press_event.connect (event => {
+				if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0 && event.keyval == Gdk.Key.n)
+					next();
+				if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0 && event.keyval == Gdk.Key.p)
+					previous();
+				return false;
+			});
+			entry.changed.connect (() => {
+				text = entry.text;
+				search_changed (text);
+			});
+			box.pack_start (entry);
+			var button = new Gtk.Button.from_icon_name ("dialog-close", Gtk.IconSize.BUTTON);
+			button.clicked.connect (() => {
+				set_reveal_child (false);
+				search_canceled();
+			});
+			var previous_button = new Gtk.Button.from_icon_name ("go-previous", Gtk.IconSize.BUTTON);
+			previous_button.clicked.connect (() => { previous(); });
+			var next_button = new Gtk.Button.from_icon_name ("go-next", Gtk.IconSize.BUTTON);
+			next_button.clicked.connect (() => { next(); });
+			box.pack_start (previous_button, false, false);
+			box.pack_start (next_button, false, false);
+			box.pack_end (button, false, false);
+			add (box);
+		}
+		
+		internal int count;
+		
+		public string text { get; private set; }
+		
+		public void search() {
+			entry.grab_focus();
+			set_reveal_child (true);
+		}
+		
+		public signal void next();
+		public signal void previous();
+		
+		public signal void search_canceled();
+		
+		public signal void search_changed (string text);
+	}
+	
 	public class FileSourceView : Gtk.EventBox {
 		GLib.File file;
 		GLib.FileMonitor monitor;
 		string etag;
+		Gtk.TextTag search_tag;
 		
 		public FileSourceView (string location) {
 			GLib.Object (location: location);
@@ -63,6 +114,65 @@ namespace Editor {
 			view = new Gtk.SourceView.with_buffer (buffer);
 			var sw = new Gtk.ScrolledWindow (null, null);
 			sw.add (view);
+			
+			var search_bar = new SearchBar();
+			
+			search_tag = buffer.create_tag ("search-tag", "background", "#C0C0C0", "foreground", "#FFFFFF");
+			
+			search_bar.search_canceled.connect (() => {
+				Gtk.TextIter start, end;
+				buffer.get_start_iter (out start);
+				buffer.get_end_iter (out end);
+				buffer.remove_tag_by_name ("search-tag", start, end);
+			});
+			
+			search_bar.search_changed.connect (query => {
+				search_bar.count = 0;
+				Gtk.TextIter start, end, start_match, end_match;
+				buffer.get_start_iter (out start);
+				buffer.get_end_iter (out end);
+				buffer.remove_tag_by_name ("search-tag", start, end);
+				while (start.forward_search (query, Gtk.TextSearchFlags.TEXT_ONLY | Gtk.TextSearchFlags.VISIBLE_ONLY, 
+				out start_match, out end_match, null)) {
+					search_bar.count++;
+					buffer.apply_tag_by_name ("search-tag", start_match, end_match);
+					int offset = end_match.get_offset();
+					buffer.get_iter_at_offset (out start, offset);
+				}
+			});
+			
+			search_bar.next.connect (() => {
+				Gtk.TextIter start, start_match, end_match;
+				buffer.get_start_iter (out start);
+				if (buffer.get_mark ("last-search-position") != null)
+					buffer.get_iter_at_mark (out start, buffer.get_mark ("last-search-position"));
+				if (start.forward_search (search_bar.text, Gtk.TextSearchFlags.TEXT_ONLY | Gtk.TextSearchFlags.VISIBLE_ONLY, 
+				out start_match, out end_match, null)) {
+					buffer.select_range (start_match, end_match);
+					buffer.create_mark ("last-search-position", end_match, false);
+				}
+				else {
+					buffer.get_start_iter (out start);
+					buffer.create_mark ("last-search-position", start, false);
+				}
+			});
+			
+			search_bar.previous.connect (() => {
+				Gtk.TextIter end, start_match, end_match;
+				buffer.get_end_iter (out end);
+				if (buffer.get_mark ("last-search-position") != null)
+					buffer.get_iter_at_mark (out end, buffer.get_mark ("last-search-position"));
+				if (end.backward_search (search_bar.text, Gtk.TextSearchFlags.TEXT_ONLY | Gtk.TextSearchFlags.VISIBLE_ONLY, 
+				out start_match, out end_match, null)) {
+					buffer.select_range (start_match, end_match);
+					buffer.create_mark ("last-search-position", start_match, false);
+				}
+				else {
+					buffer.get_start_iter (out end);
+					buffer.create_mark ("last-search-position", end, false);
+				}
+			});
+			
 			bar = new FileSourceBar();
 			bar.response.connect (id => {
 				if (id == Gtk.ResponseType.OK && bar.message_type == Gtk.MessageType.INFO) {
@@ -99,6 +209,7 @@ namespace Editor {
 			
 			var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
 			box.pack_start (bar, false, false);
+			box.pack_start (search_bar, false, false);
 			box.pack_start (sw);
 			bar.show_all();
 			add (box);
@@ -122,6 +233,13 @@ namespace Editor {
 					etag = tag;
 					saved();
 				}
+				if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0 && event.keyval == Gdk.Key.f) {
+					search_bar.search();
+				}
+				if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0 && event.keyval == Gdk.Key.n)
+					search_bar.next();
+				if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0 && event.keyval == Gdk.Key.p)
+					search_bar.previous();
 				return false;
 			});
 		}

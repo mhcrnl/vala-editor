@@ -1,7 +1,7 @@
 namespace Editor {
 	public class FileChooserDialog : Gtk.FileChooserDialog {
-		public FileChooserDialog (Gtk.Window parent, string title) {
-			GLib.Object (use_header_bar : 1, action : Gtk.FileChooserAction.OPEN, select_multiple : true,
+		public FileChooserDialog (Gtk.Window parent, string title, Gtk.FileChooserAction action) {
+			GLib.Object (use_header_bar : 1, action : action, select_multiple : true,
 				transient_for : parent, title : title);
 		}
 		
@@ -68,23 +68,40 @@ namespace Editor {
 				var assistant = new ProjectAssistant();
 				assistant.show_all();
 			});
+			
+			var fileitem = new Gtk.MenuItem.with_label ("Add file");
+			fileitem.sensitive = false;
+			fileitem.activate.connect (() => {
+				var dialog = new FileChooserDialog (this, "Add file(s)", Gtk.FileChooserAction.OPEN);
+				if (dialog.run() == Gtk.ResponseType.OK)  {
+					if (manager.project != null)
+						foreach (var file in dialog.get_filenames())
+							manager.project.sources.add (file);
+				}
+				dialog.destroy();	
+			});
+			
 			var prjitem = new Gtk.MenuItem.with_label ("Open project");
 			prjitem.activate.connect (() => {
 				var dialog = new ProjectChooserDialog (this);
 				Project? project = null;
 				if (dialog.run() == Gtk.ResponseType.OK) {
 					project = manager.load_project (dialog.get_filename());
+					fileitem.sensitive = true;
 				}
 				if (project != null) {
 					manager.project = project;
 				}
 				dialog.destroy();
 			});
-			
+
 			var quititem = new Gtk.MenuItem.with_label ("Quit");
 			quititem.activate.connect (Gtk.main_quit);
+			
 			menu.add (newitem);
 			menu.add (prjitem);
+			menu.add (new Gtk.SeparatorMenuItem());
+			menu.add (fileitem);
 			menu.add (new Gtk.SeparatorMenuItem());
 			menu.add (quititem);
 			button.popup = menu;

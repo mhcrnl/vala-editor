@@ -1,10 +1,24 @@
 namespace Editor {
+	public class StringList : Gee.ArrayList<string> {
+		public StringList() {
+			base();
+		}
+		
+		public virtual signal void add (string str) {
+			base.add (str);
+		}
+		
+		public virtual signal bool remove (string str) {
+			return base.remove (str);
+		}
+	}
+	
 	public class Project : GLib.Object {
 		public string name { get; construct; }
 		public string location { get; construct; }
 
-		public Gee.ArrayList<string> packages { get; private set; }
-		public Gee.ArrayList<string> sources { get; private set; }
+		public StringList packages { get; private set; }
+		public StringList sources { get; private set; }
 		public Gee.HashMap<string, string> flags { get; private set; }
 		
 		public Project (string name, string location) {
@@ -12,8 +26,8 @@ namespace Editor {
 		}
 
 		construct {
-			packages = new Gee.ArrayList<string>();
-			sources = new Gee.ArrayList<string>();
+			packages = new StringList();
+			sources = new StringList();
 			flags = new Gee.HashMap<string, string>();
 		}
 		

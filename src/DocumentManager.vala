@@ -11,6 +11,15 @@ namespace Editor {
 					this.remove (widget);				
 				});
 				engine.init();
+				project.sources.add.connect (source => {
+					add_document (source);
+					show_all();
+					update();
+				});
+				project.packages.add.connect (package => {
+					engine.add_package (package);
+					update();
+				});
 				foreach (var src in project.sources)
 					add_document (src);
 				foreach (var pkg in project.packages)
