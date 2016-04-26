@@ -5,17 +5,60 @@ namespace Editor {
 		}
 		
 		Icon icon;
+		string info;
 		
 		construct {
 			icon = new BytesIcon (resources_lookup_data ("/resources/icons/%s.png".printf (symbol.type_name.substring (4).down()),
 				ResourceLookupFlags.NONE));
+				
+			info = "";
+			if (symbol.is_internal_symbol())
+				info += "internal ";
+			else if (symbol.is_private_symbol())
+				info += "private ";
+			else
+				info += "public ";
+			
+			if (symbol is Vala.Method) {
+				var meth = symbol as Vala.Method;
+				if ((meth.binding & Vala.MemberBinding.STATIC) != 0)
+					info += "static ";
+				string str = "";
+				foreach (var param in meth.get_parameters())
+					if (param.variable_type != null)
+						str += param.variable_type.to_string() + " " + param.name + ", ";
+				if (str.length > 1)
+					str = str.substring (0, str.length - 2);
+				str = meth.return_type.to_string() + " " + meth.name + " (" + str + ")";
+				info += str;
+			}
+			else if (symbol is Vala.Property) {
+				var prop = symbol as Vala.Property;
+				if ((prop.binding & Vala.MemberBinding.STATIC) != 0)
+					info += "static ";
+				string str = "{ ";
+				if (prop.get_accessor != null)
+					str += "get; ";
+				if (prop.set_accessor != null)
+					str += "set; ";
+				str += "}";
+				info += prop.property_type.to_string() + " " + prop.name + " " + str;
+			}
+			else if (symbol is Vala.Variable) {
+				var v = symbol as Vala.Variable;
+				info += v.variable_type.to_string() + " " + v.name;
+			}
+			else
+				info += symbol.name;
+			if (symbol.comment != null)
+				info += "\n" + symbol.comment.content;
 		}
 		
 		public unowned GLib.Icon? get_gicon() {
 			return icon;
 		}
 		public unowned string? get_icon_name() { return null; }
-		public string? get_info() { return symbol.name; }
+		public string? get_info() { return info; }
 		public string get_label() { return symbol.name; }
 		public string get_markup() { return symbol.name; }
 		public string get_text() { return symbol.name; }
@@ -54,48 +97,9 @@ namespace Editor {
 		Gtk.Label info_label;
 		
 		public unowned Gtk.Widget? get_info_widget (Gtk.SourceCompletionProposal proposal) {
-			var symbol = (proposal as SymbolItem).symbol;
 			if (info_label == null)
 				info_label = new Gtk.Label ("");
-			string info = "";
-			if (symbol.is_internal_symbol())
-				info += "internal ";
-			else if (symbol.is_private_symbol())
-				info += "private ";
-			else
-				info += "public ";
-			
-			if (symbol is Vala.Method) {
-				var meth = symbol as Vala.Method;
-				if ((meth.binding & Vala.MemberBinding.STATIC) != 0)
-					info += "static ";
-				string str = "";
-				foreach (var param in meth.get_parameters())
-					if (param.variable_type != null)
-						str += param.variable_type.to_string() + " " + param.name + ", ";
-				if (str.length > 1)
-					str = str.substring (0, str.length - 2);
-				str = meth.return_type.to_string() + " " + meth.name + " (" + str + ")";
-				info_label.label = info + str;
-			}
-			else if (symbol is Vala.Property) {
-				var prop = symbol as Vala.Property;
-				if ((prop.binding & Vala.MemberBinding.STATIC) != 0)
-					info += "static ";
-				string str = "{ ";
-				if (prop.get_accessor != null)
-					str += "get; ";
-				if (prop.set_accessor != null)
-					str += "set; ";
-				str += "}";
-				info_label.label = info + prop.property_type.to_string() + " " + prop.name + " " + str;
-			}
-			else if (symbol is Vala.Variable) {
-				var v = symbol as Vala.Variable;
-				info_label.label = info + v.variable_type.to_string() + " " + v.name;
-			}
-			else
-				info_label.label = info + symbol.name;
+			info_label.label = proposal.get_info();
 			info_label.show_all();
 			return info_label;
 		}

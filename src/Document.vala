@@ -1,5 +1,5 @@
 namespace Editor {
-	public class Document : FileSourceView {
+	public class Document : SourceFileView {
 		public Document (string path) {
 			base (path);
 		}
@@ -12,8 +12,9 @@ namespace Editor {
 		string old_content;
 		
 		construct {
+			view.auto_indent = true;
 			old_content = view.buffer.text;
-			saved.connect (() => {
+			save.connect (() => {
 				old_content = view.buffer.text;
 			});
 			view.has_tooltip = false;
@@ -25,6 +26,10 @@ namespace Editor {
 				tooltip.set_icon_from_icon_name (tooltip_icon_name, Gtk.IconSize.LARGE_TOOLBAR); 
 				tooltip.set_markup ("<b>%s</b>".printf (tooltip_message));
 				return true;
+			});
+			
+			line_changed.connect (() => {
+				//save();
 			});
 			
 			view.key_press_event.connect (event => {

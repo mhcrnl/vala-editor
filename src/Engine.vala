@@ -36,6 +36,10 @@ namespace Editor {
 		}
 		
 		static construct {
+			process();
+		}
+		
+		static void process() {
 			packages = new Gee.ArrayList<Package>((p1, p2) => {
 				return (p1.id == p2.id && p1.name == p2.name && p1.description == p2.description);
 			});
@@ -51,10 +55,14 @@ namespace Editor {
 		}
 		
 		public static Gee.List<Package> list_packages() {
+			if (packages == null)
+				process();
 			return packages;
 		}
 		
 		public static Gee.Iterator<Package> list_available_packages() {
+			if (packages == null)
+				process();
 			var context = new Vala.CodeContext();
 			context.profile = Vala.Profile.GOBJECT;
 			
@@ -109,13 +117,11 @@ namespace Editor {
 				object.get_array_member("sources").foreach_element ((array, index, node) => {
 					if (project == null)
 						return;	
-					string rpath = node.get_string();
-					if (rpath[0] != '/')
-						rpath = basepath + "/" + rpath;
-					if (node.get_value_type() != typeof (string) || !FileUtils.test (rpath, FileTest.EXISTS))
+					string path = node.get_string();
+					if (node.get_value_type() != typeof (string) || !FileUtils.test (path, FileTest.EXISTS))
 						project = null;
 					else
-						project.sources.add (rpath);
+						project.sources.add (path);
 				});
 				return project;
 			} catch {
@@ -138,6 +144,10 @@ namespace Editor {
 		}
 		
 		public bool add_package (string package) {
+			if (!context.has_package ("gobject-2.0")) {
+				context.add_external_package ("glib-2.0");
+				context.add_external_package ("gobject-2.0");
+			}
 			return context.add_external_package (package);
 		}
 		
@@ -177,6 +187,7 @@ namespace Editor {
 			Vala.SourceFile? source = null;
 			lock (context) {
 				foreach (var file in context.get_source_files()) {
+					print ("%s %s\n", file.filename, filename);
 					if (file.filename == filename)  {
 						source = file;
 						break;
@@ -542,11 +553,17 @@ namespace Editor {
 			return context.root;
 		}
 		
+		bool parsing;
+		
 		public void parse() {
+			if (parsing)
+				return;
 			begin_parsing();
 			try {
 				Thread.create<void>(() => {
 					lock (context) {
+						parsing = true;
+						report.init();
 						Vala.CodeContext.push (context);
 						foreach (var file in context.get_source_files())
 							if (file.get_nodes().size == 0)
@@ -554,6 +571,7 @@ namespace Editor {
 						context.check();
 						Vala.CodeContext.pop();
 						end_parsing (report);
+						parsing = false;
 					}
 				}, false);
 			} catch {

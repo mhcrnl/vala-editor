@@ -3,7 +3,6 @@ namespace Editor {
 		Gtk.ListStore store;
 		
 		construct {
-			hscrollbar_policy = Gtk.PolicyType.NEVER;
 			store = new Gtk.ListStore (3, typeof (bool), typeof (string), typeof (string));
 			var view = new Gtk.TreeView.with_model (store);
 			
@@ -28,17 +27,28 @@ namespace Editor {
 			add (view);
 		}
 		
-		public string[] get_packages() {
-			var result = new GenericArray<string>();
-			store.foreach ((model, path, iter) => {
-				GLib.Value b, n;
-				model.get_value (iter, 0, out b);
-				model.get_value (iter, 1, out n);
-				if ((bool)b)
-					result.add ((string)n);
-				return false;
-			});
-			return result.data;
+		public string[] packages {
+			owned get {
+				var result = new GenericArray<string>();
+				store.foreach ((model, path, iter) => {
+					GLib.Value b, n;
+					model.get_value (iter, 0, out b);
+					model.get_value (iter, 1, out n);
+					if ((bool)b)
+						result.add ((string)n);
+					return false;
+				});
+				return result.data;
+			}
+			set {
+				store.foreach ((model, path, iter) => {
+					string pkg;
+					model.get (iter, 1, out pkg);
+					if (pkg in value)
+						store.set (iter, 0, true);
+					return false;
+				});
+			}
 		}
 	}
 	
@@ -82,18 +92,28 @@ namespace Editor {
 			add_page (page3);
 			
 			apply.connect (() => {
-				if (project != null)
-					foreach (var package in package_view.get_packages())
+				if (project != null) {
+					foreach (var package in package_view.packages)
 						project.packages.add (package);
+					var path = File.new_for_path (project.location).get_parent().get_path();
+					FileUtils.set_contents (path + "/main.vala", "");
+					project.sources.add ("main.vala");
+					project.save();
+				}
+				response (Gtk.ResponseType.APPLY);
+			});
+			close.connect (() => {
 				destroy();
 			});
 			cancel.connect (() => {
-				destroy();
+				response (Gtk.ResponseType.CANCEL);
 			});
 			escape.connect (() => {
-				destroy();
+				response (Gtk.ResponseType.CANCEL);
 			});
 		}
+		
+		public signal void response (Gtk.ResponseType type);
 
 		public Project project { get; private set; }
 	}

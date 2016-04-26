@@ -1,5 +1,5 @@
 namespace Editor {
-	public class FileSourceBar : Gtk.Revealer {
+	public class SourceFileBar : Gtk.Revealer {
 		Gtk.InfoBar info_bar;
 		Gtk.Label label;
 		Gtk.Image image;
@@ -41,7 +41,7 @@ namespace Editor {
 		public Gtk.MessageType message_type { get; set; }
 	}
 	
-	public class SearchBar : Gtk.Revealer {
+	public class SourceSearchBar : Gtk.Revealer {
 		Gtk.SearchEntry entry;
 		
 		construct {
@@ -91,13 +91,14 @@ namespace Editor {
 		public signal void search_changed (string text);
 	}
 	
-	public class FileSourceView : Gtk.EventBox {
+	public class SourceFileView : Gtk.EventBox {
 		GLib.File file;
 		GLib.FileMonitor monitor;
 		string etag;
+		bool changed;
 		Gtk.TextTag search_tag;
 		
-		public FileSourceView (string location) {
+		public SourceFileView (string location) {
 			GLib.Object (location: location);
 		}
 		
@@ -115,7 +116,7 @@ namespace Editor {
 			var sw = new Gtk.ScrolledWindow (null, null);
 			sw.add (view);
 			
-			var search_bar = new SearchBar();
+			var search_bar = new SourceSearchBar();
 			
 			search_tag = buffer.create_tag ("search-tag", "background", "#C0C0C0", "foreground", "#FFFFFF");
 			
@@ -173,13 +174,13 @@ namespace Editor {
 				}
 			});
 			
-			bar = new FileSourceBar();
+			bar = new SourceFileBar();
 			bar.response.connect (id => {
 				if (id == Gtk.ResponseType.OK && bar.message_type == Gtk.MessageType.INFO) {
 					uint8[] data;
 					file.load_contents (null, out data, null);
 					view.buffer.text = (string)data;
-					saved();
+					save();
 				}
 				else if (id == Gtk.ResponseType.OK && bar.message_type == Gtk.MessageType.WARNING) {
 					string tag;
@@ -188,7 +189,6 @@ namespace Editor {
 				}
 			});
 			
-			bool changed = false;
 			monitor.changed.connect ((f1, f2, event_type) => {
 				if (event_type == FileMonitorEvent.CHANGES_DONE_HINT) {
 					if (changed) {
@@ -223,15 +223,13 @@ namespace Editor {
 			view.key_press_event.connect (event => {
 				Gtk.TextIter iter;
 				view.buffer.get_iter_at_mark (out iter, view.buffer.get_insert());
+				if (current_line != iter.get_line())
+					line_changed();
 				current_line = iter.get_line();
 				current_column = iter.get_line_offset();
 				
 				if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0 && event.keyval == Gdk.Key.s) {
-					string tag;
-					changed = true;
-					file.replace_contents (view.buffer.text.data, etag, true, FileCreateFlags.NONE, out tag);
-					etag = tag;
-					saved();
+					save();
 				}
 				if ((event.state & Gdk.ModifierType.CONTROL_MASK) != 0 && event.keyval == Gdk.Key.f) {
 					search_bar.search();
@@ -254,9 +252,16 @@ namespace Editor {
 			return start.get_text (iter);
 		}
 		
-		public signal void saved();
+		public signal void line_changed();
 		
-		public FileSourceBar bar { get; private set; }
+		public virtual signal void save() {
+			string tag;
+			changed = true;
+			file.replace_contents (view.buffer.text.data, etag, true, FileCreateFlags.NONE, out tag);
+			etag = tag;
+		}
+		
+		public SourceFileBar bar { get; private set; }
 		public int current_line { get; private set; }
 		public int current_column { get; private set; }
 		public string location { get; construct; }

@@ -39,23 +39,24 @@ namespace Editor {
 	}
 	
 	public class Window : Gtk.Window {
+		ProjectView project_view;
 		DocumentManager manager;
 		ReportTable table;
-		SymbolTree tree;
 		
 		construct {
 			destroy.connect (Gtk.main_quit);
-			
-			tree = new SymbolTree();
-			tree.width_request = 200;
-			tree.symbol_activated.connect (symbol => { print ("symbol : %s\n", symbol.name); });
-			tree.updated.connect (() => { print ("done\n"); });
+			project_view = new ProjectView (this);
 			table = new ReportTable();
 			manager = new DocumentManager();
+			project_view.source_activated.connect (source => {
+				manager.add_document (source);
+			});
+			manager.notify["project"].connect (() => {
+				project_view.project = manager.project;
+			});
 			manager.engine.begin_parsing.connect (table.clear);
 			manager.engine.end_parsing.connect (report => {
 				table.update (report);
-				tree.update (manager.engine.get_root());
 			});
 			var bar = new Gtk.HeaderBar();
 			bar.show_close_button = true;
@@ -66,6 +67,10 @@ namespace Editor {
 			var newitem = new Gtk.MenuItem.with_label ("New project");			
 			newitem.activate.connect (() => {
 				var assistant = new ProjectAssistant();
+				assistant.response.connect (id => {
+					if (id == Gtk.ResponseType.APPLY)
+						manager.project = assistant.project;
+				});
 				assistant.show_all();
 			});
 			
@@ -110,16 +115,17 @@ namespace Editor {
 			bar.pack_start (button);
 			set_titlebar (bar);
 			
-			var vbox = new Gtk.Box (Gtk.Orientation.VERTICAL, 0);
-			vbox.pack_start (manager);
-			table.height_request = 200;
-			vbox.pack_start (table, false, false);
+			var hpaned = new Gtk.Paned (Gtk.Orientation.HORIZONTAL);
+			hpaned.add2 (manager);
+			hpaned.add1 (project_view);
+			hpaned.position = 100;
 			
-			var hbox = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-			hbox.pack_start (vbox);
-			hbox.pack_start (tree, false, false);
+			var vpaned = new Gtk.Paned (Gtk.Orientation.VERTICAL);
+			vpaned.add1 (hpaned);
+			vpaned.add2 (table);
+			vpaned.position = 600;
 			
-			add (hbox);
+			add (vpaned);
 		}
 	}
 }

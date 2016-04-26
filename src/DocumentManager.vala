@@ -11,17 +11,15 @@ namespace Editor {
 					this.remove (widget);				
 				});
 				engine.init();
+				project.update.connect (update);
 				project.sources.add.connect (source => {
-					add_document (source);
-					show_all();
 					update();
 				});
 				project.packages.add.connect (package => {
-					engine.add_package (package);
 					update();
 				});
 				foreach (var src in project.sources)
-					add_document (src);
+					engine.add_source (src);
 				foreach (var pkg in project.packages)
 					engine.add_package (pkg);
 				show_all();
@@ -77,8 +75,9 @@ namespace Editor {
 		}
 		
 		public void add_document (string path) {
-			var document = new Document (path);
-			document.saved.connect (update);
+			var real_path = File.new_for_path (path).get_path();
+			var document = new Document (real_path);
+			document.save.connect_after (update);
 			document.manager = this;
 			engine.add_document (document);
 
@@ -91,7 +90,7 @@ namespace Editor {
 			tab.pack_end (button, false, false);
 
 			document.editing.connect (edit => {
-				icon.icon_name = edit ? "mail-message-new" : "document";
+				icon.icon_name = edit ? "edit-copy" : "document";
 			});
 			
 			int i = prepend_page (document, tab);
@@ -100,6 +99,7 @@ namespace Editor {
 			});
 			tab.show_all();
 			set_tab_reorderable (get_nth_page (i), true);
+			show_all();
 		}
 		
 		public Project? load_project (string filename) {

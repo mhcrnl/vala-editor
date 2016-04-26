@@ -61,6 +61,8 @@ namespace Editor {
 			}
 		}
 		
+		public signal void update();
+		
 		public static Project? load (string filename) {
 			try {
 				var parser = new Json.Parser();
@@ -89,13 +91,11 @@ namespace Editor {
 				object.get_array_member("sources").foreach_element ((array, index, node) => {
 					if (project == null)
 						return;	
-					string rpath = node.get_string();
-					if (rpath[0] != '/')
-						rpath = basepath + "/" + rpath;
-					if (node.get_value_type() != typeof (string) || !FileUtils.test (rpath, FileTest.EXISTS))
+					string path = node.get_string();
+					if (node.get_value_type() != typeof (string) || !FileUtils.test (path, FileTest.EXISTS))
 						project = null;
 					else
-						project.sources.add (rpath);
+						project.sources.add (path);
 				});
 				return project;
 			} catch {

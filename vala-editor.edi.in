@@ -21,7 +21,8 @@
 		"src/Assistant.vala",
 		"src/ProjectAssistant.vala",
 		"src/Symbol.vala",
-		"src/SymbolTree.vala"
+		"src/SymbolTree.vala",
+		"src/ProjectView.vala"
 	],
 	"flags" : {
 		"gresources" : "resources.xml",
