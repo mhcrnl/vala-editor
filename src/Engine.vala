@@ -107,6 +107,7 @@ namespace Editor {
 					return null;
 				var project = new Project (object.get_string_member ("name"), filename);
 				object.get_array_member("packages").foreach_element ((array, index, node) => {
+					print ("package : %s\n", node.get_string());
 					if (project == null)
 						return;			
 					if (node.get_value_type() != typeof (string) || !package_exists (node.get_string()))
@@ -130,10 +131,13 @@ namespace Editor {
 		}
 	
 		public bool package_exists (string package) {
+			print ("%s\n", context.get_vapi_path (package));
+			print ("%s\n", context.get_gir_path (package));
 			if (context.get_vapi_path (package) == null && context.get_gir_path (package) == null)
 				return false;
 			bool result = false;
 			packages.foreach (pkg => {
+				print ("%s %s\n", pkg.id, package);
 				if (pkg.id == package) {
 					result = true;
 					return false;

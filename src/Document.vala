@@ -98,6 +98,11 @@ namespace Editor {
 			return iter;
 		}
 		
+		public void go_to (Vala.SourceLocation location) {
+			view.place_cursor_onscreen();
+			view.buffer.place_cursor (location_to_iter (location));
+		}
+		
 		public void clear_tags() {
 			errors_list = new Gee.ArrayList<Report.Error?>();
 			Gtk.TextIter start, end;

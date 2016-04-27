@@ -11,15 +11,34 @@ namespace Editor {
 			icon = new BytesIcon (resources_lookup_data ("/resources/icons/%s.png".printf (symbol.type_name.substring (4).down()),
 				ResourceLookupFlags.NONE));
 				
-			info = "";
-			if (symbol.is_internal_symbol())
-				info += "internal ";
-			else if (symbol.is_private_symbol())
-				info += "private ";
-			else
-				info += "public ";
+			info = symbol.is_private_symbol() ? " " : "public ";
 			
-			if (symbol is Vala.Method) {
+			if (symbol is Vala.Constant) {
+				info += "const ";
+			}
+			else if (!(symbol is Vala.Method || symbol is Vala.Field || symbol is Vala.Property))
+				info += "%s ".printf (symbol.type_name.substring (4).down());
+			if (symbol is Vala.Delegate) {
+				var del = symbol as Vala.Delegate;
+				info += del.return_type.to_string() + " ";
+				string str = "";
+				foreach (var param in del.get_parameters())
+					str += param.variable_type.to_string() + " " + param.name + ", ";
+				if (str.length > 1)
+					str = str.substring (0, str.length - 2);
+				info += del.name + "(" + str + ")";
+			}
+			else if (symbol is Vala.Signal) {
+				var sig = symbol as Vala.Signal;
+				info += sig.return_type.to_string() + " ";
+				string str = "";
+				foreach (var param in sig.get_parameters())
+					str += param.variable_type.to_string() + " " + param.name + ", ";
+				if (str.length > 1)
+					str = str.substring (0, str.length - 2);
+				info += sig.name + "(" + str + ")";
+			}
+			else if (symbol is Vala.Method) {
 				var meth = symbol as Vala.Method;
 				if ((meth.binding & Vala.MemberBinding.STATIC) != 0)
 					info += "static ";
@@ -29,7 +48,12 @@ namespace Editor {
 						str += param.variable_type.to_string() + " " + param.name + ", ";
 				if (str.length > 1)
 					str = str.substring (0, str.length - 2);
-				str = meth.return_type.to_string() + " " + meth.name + " (" + str + ")";
+				string mn = "";
+				if (meth is Vala.CreationMethod)
+					mn = (meth as Vala.CreationMethod).class_name;
+				else
+					mn = meth.return_type.to_string();
+				str = mn + " " + meth.name + " (" + str + ")";
 				info += str;
 			}
 			else if (symbol is Vala.Property) {
@@ -37,16 +61,32 @@ namespace Editor {
 				if ((prop.binding & Vala.MemberBinding.STATIC) != 0)
 					info += "static ";
 				string str = "{ ";
-				if (prop.get_accessor != null)
+				if (prop.get_accessor != null) {
+					if (prop.get_accessor.is_private_symbol())
+						str += "private ";
+					if (prop.get_accessor.is_internal_symbol())
+						str += "internal ";
 					str += "get; ";
-				if (prop.set_accessor != null)
+				}
+				if (prop.set_accessor != null) {
+					if (prop.set_accessor.is_private_symbol())
+						str += "private ";
+					if (prop.set_accessor.is_internal_symbol())
+						str += "internal ";
 					str += "set; ";
+				}
 				str += "}";
 				info += prop.property_type.to_string() + " " + prop.name + " " + str;
 			}
 			else if (symbol is Vala.Variable) {
 				var v = symbol as Vala.Variable;
 				info += v.variable_type.to_string() + " " + v.name;
+			}
+			else if (symbol is Vala.EnumValue || symbol is Vala.ErrorDomain) {
+				info += symbol.parent_symbol.name + " " + symbol.name;
+			}
+			else if (symbol is Vala.Constant) {
+				info += (symbol as Vala.Constant).type_reference.to_string() + " " + symbol.name;
 			}
 			else
 				info += symbol.name;

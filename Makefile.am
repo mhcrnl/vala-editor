@@ -1,6 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
     SUBDIRS = src
     EXTRA_DIST = autogen.sh
+    
+readmedir = $(datadir)
+readme_DATA = README COPYING AUTHORS
 
 DISTCLEANFILES = aclocal.m4 ar-lib compile configure config.* \
 	depcomp install-sh libtool ltmain.sh missing Makefile.in vala-editor.edi

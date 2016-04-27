@@ -61,8 +61,8 @@ namespace Editor {
 			engine.add_document (document);
 			var label = new Gtk.Label (document.title);
 			append_page (document, label);
-			set_tab_reorderable (label, true);
-			set_tab_detachable (label, true);
+			set_tab_reorderable (document, true);
+			set_tab_detachable (document, true);
 		}
 		
 		public bool contains (string path) {
@@ -74,7 +74,38 @@ namespace Editor {
 			return result;
 		}
 		
-		public void add_document (string path) {
+		public bool add_file (Vala.SourceReference reference) {
+			if (reference.file.filename in this)
+				return false;
+			var document = new Document (reference.file.filename);
+			document.manager = this;
+			document.show.connect (() => {
+				document.go_to (reference.begin);
+			});
+			if (reference.file.file_type == Vala.SourceFileType.PACKAGE) {
+				document.view.sensitive = false;
+			}
+			var tab = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
+			var icon = new Gtk.Image.from_icon_name ("document", Gtk.IconSize.BUTTON);
+			var label = new Gtk.Label (document.title);
+			var button  = new Gtk.Button.from_icon_name ("dialog-close", Gtk.IconSize.BUTTON);
+			tab.pack_start (icon, false, false);
+			tab.pack_start (label);
+			tab.pack_end (button, false, false);
+
+			int i = prepend_page (document, tab);
+			button.clicked.connect (() => {
+				this.remove (document);
+			});
+			tab.show_all();
+			set_tab_reorderable (document, true);
+			show_all();
+			return true;
+		}
+		
+		public bool add_document (string path) {
+			if (path in this)
+				return false;
 			var real_path = File.new_for_path (path).get_path();
 			var document = new Document (real_path);
 			document.save.connect_after (update);
@@ -95,11 +126,12 @@ namespace Editor {
 			
 			int i = prepend_page (document, tab);
 			button.clicked.connect (() => {
-				this.remove (get_nth_page (i));
+				this.remove (document);
 			});
 			tab.show_all();
-			set_tab_reorderable (get_nth_page (i), true);
+			set_tab_reorderable (document, true);
 			show_all();
+			return true;
 		}
 		
 		public Project? load_project (string filename) {

@@ -5,6 +5,7 @@ namespace Editor {
 		construct {
 			store = new Gtk.ListStore (2, typeof (bool), typeof (string));
 			var tree_view = new Gtk.TreeView.with_model (store);
+			tree_view.headers_visible = false;
 			var toggle = new Gtk.CellRendererToggle();
 			toggle.toggled.connect (path => {
 				var tpath = new Gtk.TreePath.from_string (path);
@@ -18,7 +19,7 @@ namespace Editor {
 			view.add (tree_view);
 			add (view);
 			set_position (Gtk.PositionType.BOTTOM);
-			set_size_request (350, 350);
+			set_size_request (250, 350);
 			
 			Engine.list_available_packages().foreach (pkg => {
 				Gtk.TreeIter iter;
@@ -105,6 +106,7 @@ namespace Editor {
 				if (ft == FileType.PACKAGE_NODE) {
 					Gdk.Rectangle rect;
 					view.get_cell_area (path, column, out rect);
+					rect.height += rect.height;
 					popover.packages = project.packages.to_array();
 					popover.set_relative_to (view);
 					popover.set_pointing_to (rect);

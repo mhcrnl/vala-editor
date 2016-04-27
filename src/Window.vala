@@ -51,6 +51,9 @@ namespace Editor {
 			project_view.source_activated.connect (source => {
 				manager.add_document (source);
 			});
+			table.file_activated.connect (file => {
+				manager.add_file (file);
+			});
 			manager.notify["project"].connect (() => {
 				project_view.project = manager.project;
 			});
@@ -91,6 +94,7 @@ namespace Editor {
 				var dialog = new ProjectChooserDialog (this);
 				Project? project = null;
 				if (dialog.run() == Gtk.ResponseType.OK) {
+			print ("in\n");
 					project = manager.load_project (dialog.get_filename());
 					fileitem.sensitive = true;
 				}
