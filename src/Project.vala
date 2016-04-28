@@ -91,11 +91,19 @@ namespace Editor {
 				object.get_array_member("sources").foreach_element ((array, index, node) => {
 					if (project == null)
 						return;	
-					string path = node.get_string();
-					if (node.get_value_type() != typeof (string) || !FileUtils.test (path, FileTest.EXISTS))
+					if (node.get_value_type() != typeof (string)) {
 						project = null;
-					else
-						project.sources.add (path);
+						return;
+					}
+					string path = node.get_string();
+					if (path[0] != '/')
+						path = basepath + "/" + node.get_string();
+					var file = File.new_for_path (path);
+					if (!file.query_exists()) {
+						project = null;
+						return;
+					}
+					project.sources.add (node.get_string());
 				});
 				return project;
 			} catch {

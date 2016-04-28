@@ -1,5 +1,6 @@
 aclocal.m4
 ar-lib
+m4
 compile
 configure
 config.*

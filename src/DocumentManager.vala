@@ -18,8 +18,14 @@ namespace Editor {
 				project.packages.add.connect (package => {
 					update();
 				});
-				foreach (var src in project.sources)
-					engine.add_source (src);
+				foreach (var src in project.sources) {
+					string path = src;
+					if (path[0] != '/') {
+						var basepath = File.new_for_path (project.location).get_parent().get_path();
+						path = basepath + "/" + src;
+					}
+					engine.add_source (path);
+				}
 				foreach (var pkg in project.packages)
 					engine.add_package (pkg);
 				show_all();
@@ -29,8 +35,14 @@ namespace Editor {
 		
 		void update() {
 			engine.init();
-			foreach (var src in project.sources)
-				engine.add_source (src);
+			foreach (var src in project.sources) {
+				string path = src;
+				if (path[0] != '/') {
+					var basepath = File.new_for_path (project.location).get_parent().get_path();
+					path = basepath + "/" + src;
+				}
+				engine.add_source (path);
+			}
 			foreach (var pkg in project.packages)
 				engine.add_package (pkg);
 			engine.parse();
@@ -103,11 +115,15 @@ namespace Editor {
 			return true;
 		}
 		
-		public bool add_document (string path) {
+		public bool add_document (string src) {
+			string path = src;
+			if (path[0] != '/') {
+				var basepath = File.new_for_path (project.location).get_parent().get_path();
+				path = basepath + "/" + src;
+			}
 			if (path in this)
 				return false;
-			var real_path = File.new_for_path (path).get_path();
-			var document = new Document (real_path);
+			var document = new Document (path);
 			document.save.connect_after (update);
 			document.manager = this;
 			engine.add_document (document);

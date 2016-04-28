@@ -101,8 +101,12 @@ namespace Editor {
 				store.get (iter, 1, out pkg);
 				if (ft == FileType.PACKAGE)
 					package_activated (pkg);
-				if (ft == FileType.SOURCE)
+				if (ft == FileType.SOURCE) {
+					var basepath = File.new_for_path (project.location).get_parent().get_path();
+					if (p[0] != '/')
+						p = basepath + "/" + p;
 					source_activated (p);
+				}
 				if (ft == FileType.PACKAGE_NODE) {
 					Gdk.Rectangle rect;
 					view.get_cell_area (path, column, out rect);
