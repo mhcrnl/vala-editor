@@ -1,5 +1,5 @@
 namespace Editor {
-	public class StringList : Gee.ArrayList<string> {
+	public class StringList : Gee.HashSet<string> {
 		public StringList() {
 			base();
 		}

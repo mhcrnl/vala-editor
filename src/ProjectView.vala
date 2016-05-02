@@ -1,4 +1,15 @@
 namespace Editor {
+	static string string_joinv (string separator, string?[]? array, int length = -1) {
+		if (array == null || array.length == 0)
+			return "";
+		if (length == -1)
+			return string.joinv (separator, array);
+		string result = array[0] == null ? "" : array[0];
+		for (var i = 1; i < length; i++)
+			result += separator + (array[i] == null ? "" : array[i]);
+		return result;
+	}
+	
 	public class PackagePopover : Gtk.Popover {
 		Gtk.ListStore store;
 		
@@ -51,6 +62,45 @@ namespace Editor {
 					store.set (iter, 0, (pkg in value));
 					return false;
 				});
+			}
+		}
+	}
+	
+	public class SourceDialog : Gtk.Dialog {
+		public SourceDialog (Gtk.Window parent, string dir) {
+			GLib.Object (use_header_bar: 1, title: "create file", transient_for: parent, directory: dir);
+		}
+		
+		construct {
+			entry = new Gtk.Entry();
+			add_button ("Cancel", Gtk.ResponseType.CANCEL);
+			ok_button = add_button ("OK", Gtk.ResponseType.OK);
+			ok_button.sensitive = false;
+			
+			entry.changed.connect (() => {
+				string path = directory + "/" + entry.text;
+				if (FileUtils.test (path, FileTest.EXISTS) || !entry.text[0].isalnum() || !entry.text.has_suffix (".vala")) {
+					entry.secondary_icon_name = "edit-delete";
+					ok_button.sensitive = false;
+				}
+				else {
+					entry.secondary_icon_name = "dialog-ok";
+					ok_button.sensitive = true;
+				}
+			});
+			
+			get_content_area().pack_start (entry);
+			get_content_area().show_all();
+		}
+		
+		Gtk.Widget ok_button;
+		Gtk.Entry entry;
+		
+		public string directory { get; construct; }
+		
+		public string text {
+			owned get {
+				return entry.text;
 			}
 		}
 	}
@@ -117,8 +167,33 @@ namespace Editor {
 					popover_hide = false;
 					popover.show_all();
 				}
-				if (ft == FileType.SOURCE_NODE)
-					sources_root_activated();
+				if (ft == FileType.DIRECTORY || ft == FileType.SOURCE_NODE) {
+					print ("path : %s\n", p);
+					string basepath = File.new_for_path (project.location).get_parent().get_path();
+					if (ft == FileType.SOURCE_NODE)
+						p = basepath;
+					else
+						p = basepath + "/" + p;
+					var dialog = new SourceDialog (window, p);
+					string response = null;
+					if (dialog.run() == Gtk.ResponseType.OK)
+						response = dialog.text;
+					dialog.destroy();
+					if (response != null) {
+						p += "/" + response;
+						string dir = "";
+						store.get (iter, 2, out dir);
+						FileUtils.set_contents (p, "\n");
+						if (ft == FileType.SOURCE_NODE) {
+							project.sources.add (response);
+						}
+						else {
+							project.sources.add (dir + "/" + response);
+						}
+						project.update();
+						update();
+					}
+				}
 			});
 			
 			view.insert_column_with_attributes (-1, null, new Gtk.CellRendererPixbuf(), "icon-name", 0);
@@ -163,8 +238,9 @@ namespace Editor {
 			store.set (iter,
 				0, icon_name,
 				1, parts[depth],
-				2, string.joinv ("/", parts),
-				3, FileType.SOURCE);
+				//2, string.joinv ("/", parts),
+				2, string_joinv ("/", parts, depth + 1),
+				3, icon_name == "folder" ? FileType.DIRECTORY : FileType.SOURCE);
 			if (depth == parts.length - 1)
 				return false;
 			return add_path (iter, parts, depth + 1);

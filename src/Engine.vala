@@ -176,6 +176,7 @@ namespace Editor {
 		}
 		
 		public void add_source (string source) {
+			print ("%s: %s\n", source, parsing ? "parsing" : "not parsing");
 			Vala.CodeContext.push (context);
 			foreach (var file in context.get_source_files()) {
 				if (file.filename == source) {
@@ -560,8 +561,8 @@ namespace Editor {
 			return context.root;
 		}
 		
-		bool parsing;
-		
+		public bool parsing { get; private set; }
+		/*
 		public void parse() {
 			if (parsing)
 				return;
@@ -576,13 +577,30 @@ namespace Editor {
 							if (file.get_nodes().size == 0)
 								parser.visit_source_file (file);
 						context.check();
+						parsing = false;
 						Vala.CodeContext.pop();
 						end_parsing (report);
-						parsing = false;
 					}
 				}, false);
 			} catch {
 			
+			}
+		}
+		*/
+		
+		public void parse() {
+			lock (context) {
+				begin_parsing();
+				report.init();
+				parsing = true;
+				Vala.CodeContext.push (context);
+				foreach (var file in context.get_source_files())
+					if (file.get_nodes().size == 0)
+						parser.visit_source_file (file);
+				context.check();
+				Vala.CodeContext.pop();
+				end_parsing (report);
+				parsing = false;
 			}
 		}
 	}

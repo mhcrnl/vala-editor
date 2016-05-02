@@ -1,6 +1,12 @@
 namespace Editor {
 	public class DocumentManager : Gtk.Notebook {
+		ThreadPool<DocumentManager> pool;
+		
 		construct {
+			pool = new ThreadPool<DocumentManager>.with_owned_data (data => {
+				data.update();
+			}, 3, false);
+			
 			scrollable = true;
 			engine = new Engine();
 			engine.begin_parsing.connect (clear_errors);
@@ -10,7 +16,6 @@ namespace Editor {
 				this.foreach (widget => {
 					this.remove (widget);				
 				});
-				engine.init();
 				project.update.connect (update);
 				project.sources.add.connect (source => {
 					update();
@@ -18,22 +23,11 @@ namespace Editor {
 				project.packages.add.connect (package => {
 					update();
 				});
-				foreach (var src in project.sources) {
-					string path = src;
-					if (path[0] != '/') {
-						var basepath = File.new_for_path (project.location).get_parent().get_path();
-						path = basepath + "/" + src;
-					}
-					engine.add_source (path);
-				}
-				foreach (var pkg in project.packages)
-					engine.add_package (pkg);
-				show_all();
-				engine.parse();
+				pool.add (this);
 			});
 		}
 		
-		void update() {
+		public void update() {
 			engine.init();
 			foreach (var src in project.sources) {
 				string path = src;
@@ -41,6 +35,7 @@ namespace Editor {
 					var basepath = File.new_for_path (project.location).get_parent().get_path();
 					path = basepath + "/" + src;
 				}
+				print ("path => %s\n", path);
 				engine.add_source (path);
 			}
 			foreach (var pkg in project.packages)

@@ -16,7 +16,7 @@ namespace Editor {
 			if (symbol is Vala.Constant) {
 				info += "const ";
 			}
-			else if (!(symbol is Vala.Method || symbol is Vala.Field || symbol is Vala.Property))
+			else if (!(symbol is Vala.Method || symbol is Vala.Field || symbol is Vala.Property || symbol is Vala.Variable))
 				info += "%s ".printf (symbol.type_name.substring (4).down());
 			if (symbol is Vala.Delegate) {
 				var del = symbol as Vala.Delegate;
