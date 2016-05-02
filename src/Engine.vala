@@ -71,6 +71,20 @@ namespace Editor {
 			});
 		}
 		
+		
+		public static bool package_exists (string package, string[] vapidirs) {
+			bool res = false;
+			foreach (string vapidir in vapidirs)
+				if (FileUtils.test (vapidir + "/" + package + ".vapi", FileTest.IS_REGULAR))	
+					return true;
+			list_available_packages().foreach (pkg => {
+				if (pkg.id == package)
+					res = true;
+				return true;
+			});
+			return res;
+		}
+		
 		construct {
 			report = new Report();
 			locator = new BlockLocator();
@@ -91,72 +105,23 @@ namespace Editor {
 			parser.parse (context);
 		}
 		
-		public Project? load_project (string filename) {
-			try {
-				var basepath = File.new_for_path(filename).get_parent().get_path();
-				var parser = new Json.Parser();
-				parser.load_from_file (filename);
-				if (parser.get_root().get_node_type() != Json.NodeType.OBJECT)
-					return null;
-				var object = parser.get_root().get_object();
-				if (!object.has_member ("name") || object.get_member("name").get_value_type() != typeof (string))
-					return null;
-				if (!object.has_member ("sources") || object.get_member("sources").get_node_type() != Json.NodeType.ARRAY)
-					return null;
-				if (!object.has_member ("packages") || object.get_member("packages").get_node_type() != Json.NodeType.ARRAY)
-					return null;
-				var project = new Project (object.get_string_member ("name"), filename);
-				object.get_array_member("packages").foreach_element ((array, index, node) => {
-					if (project == null)
-						return;			
-					if (node.get_value_type() != typeof (string) || !package_exists (node.get_string()))
-						project = null;
-					else
-						project.packages.add (node.get_string());
-				});
-				object.get_array_member("sources").foreach_element ((array, index, node) => {
-					if (project == null)
-						return;	
-					if (node.get_value_type() != typeof (string)) {
-						project = null;
-						return;
-					}
-					string path = node.get_string();
-					if (path[0] != '/')
-						path = basepath + "/" + node.get_string();
-					var file = File.new_for_path (path);
-					if (!file.query_exists()) {
-						project = null;
-						return;
-					}
-					project.sources.add (node.get_string());
-				});
-				return project;
-			} catch {
-				return null;
-			}
-		}
-	
-		public bool package_exists (string package) {
-			if (context.get_vapi_path (package) == null && context.get_gir_path (package) == null)
-				return false;
-			bool result = false;
-			packages.foreach (pkg => {
-				if (pkg.id == package) {
-					result = true;
-					return false;
-				}
-				return true;
-			});
-			return result;
-		}
-		
 		public bool add_package (string package) {
 			if (!context.has_package ("gobject-2.0")) {
 				context.add_external_package ("glib-2.0");
 				context.add_external_package ("gobject-2.0");
 			}
 			return context.add_external_package (package);
+		}
+		
+		public bool add_vapidir (string vapidir) {
+			if (!FileUtils.test (vapidir, FileTest.IS_DIR))
+				return false;
+			print ("vapidir : %s\n", vapidir);
+			var hset = new Gee.HashSet<string>();
+			hset.add_all_array (context.vapi_directories);
+			hset.add (vapidir);
+			context.vapi_directories = hset.to_array();
+			return true;
 		}
 		
 		public void add_document (Document document) {

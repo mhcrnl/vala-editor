@@ -29,13 +29,14 @@ namespace Editor {
 		
 		public void update() {
 			engine.init();
+			foreach (var dir in project.vapidirs)
+				engine.add_vapidir (dir);
 			foreach (var src in project.sources) {
 				string path = src;
 				if (path[0] != '/') {
 					var basepath = File.new_for_path (project.location).get_parent().get_path();
 					path = basepath + "/" + src;
 				}
-				print ("path => %s\n", path);
 				engine.add_source (path);
 			}
 			foreach (var pkg in project.packages)
@@ -146,7 +147,7 @@ namespace Editor {
 		}
 		
 		public Project? load_project (string filename) {
-			return engine.load_project (filename);
+			return Project.load (filename);
 		}
 		
 		public Engine engine { get; private set; }
