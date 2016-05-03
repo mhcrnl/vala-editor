@@ -13,6 +13,21 @@ namespace Editor {
 		
 		construct {
 			view.auto_indent = true;
+			int cc_line, cc_column;
+			view.paste_clipboard.connect (() => {
+				Gtk.TextIter tmp;
+				view.buffer.get_iter_at_mark (out tmp, view.buffer.get_insert());
+				cc_line = tmp.get_line();
+				cc_column = tmp.get_line_offset();
+			});
+			view.buffer.paste_done.connect (clipboard => {
+				Gtk.TextIter cc_end;
+				view.buffer.get_iter_at_mark (out cc_end, view.buffer.get_insert());
+				Gtk.TextIter cc_start;
+				view.buffer.get_iter_at_line_offset (out cc_start, cc_line, cc_column);
+				buffer.remove_tag_by_name ("warning-tag", cc_start, cc_end);
+				buffer.remove_tag_by_name ("error-tag", cc_start, cc_end);
+			});
 			old_content = view.buffer.text;
 			save.connect (() => {
 				old_content = view.buffer.text;
