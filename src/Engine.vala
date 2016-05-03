@@ -116,7 +116,6 @@ namespace Editor {
 		public bool add_vapidir (string vapidir) {
 			if (!FileUtils.test (vapidir, FileTest.IS_DIR))
 				return false;
-			print ("vapidir : %s\n", vapidir);
 			var hset = new Gee.HashSet<string>();
 			hset.add_all_array (context.vapi_directories);
 			hset.add (vapidir);
@@ -141,7 +140,6 @@ namespace Editor {
 		}
 		
 		public void add_source (string source) {
-			print ("%s: %s\n", source, parsing ? "parsing" : "not parsing");
 			Vala.CodeContext.push (context);
 			foreach (var file in context.get_source_files()) {
 				if (file.filename == source) {

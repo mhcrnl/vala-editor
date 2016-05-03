@@ -95,7 +95,6 @@ namespace Editor {
 				Project? project = null;
 				if (dialog.run() == Gtk.ResponseType.OK) {
 					project = manager.load_project (dialog.get_filename());
-					print ("%s\n", (project == null).to_string());
 					fileitem.sensitive = true;
 				}
 				if (project != null) {

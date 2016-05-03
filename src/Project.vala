@@ -107,8 +107,6 @@ namespace Editor {
 						}
 						project.vapidirs.add (path);
 					});
-				print ("%s\n", (project == null).to_string());
-				print ("ok 1\n");
 				if (object.has_member ("packages"))
 					object.get_array_member("packages").foreach_element ((array, index, node) => {
 						if (project == null)
@@ -118,8 +116,6 @@ namespace Editor {
 						else
 							project.packages.add (node.get_string());
 					});
-				print ("%s\n", (project == null).to_string());
-				print ("ok 2\n");
 				object.get_array_member("sources").foreach_element ((array, index, node) => {
 					if (project == null)
 						return;	
@@ -137,8 +133,6 @@ namespace Editor {
 					}
 					project.sources.add (node.get_string());
 				});
-				print ("%s\n", (project == null).to_string());
-				print ("ok 3\n");
 				return project;
 			} catch {
 				return null;

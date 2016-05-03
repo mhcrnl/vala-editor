@@ -168,7 +168,6 @@ namespace Editor {
 					popover.show_all();
 				}
 				if (ft == FileType.DIRECTORY || ft == FileType.SOURCE_NODE) {
-					print ("path : %s\n", p);
 					string basepath = File.new_for_path (project.location).get_parent().get_path();
 					if (ft == FileType.SOURCE_NODE)
 						p = basepath;

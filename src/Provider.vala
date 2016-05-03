@@ -203,6 +203,8 @@ namespace Editor {
 		}
 		*/
 		
+		public signal void hide();
+		
 		public void populate (Gtk.SourceCompletionContext context) {
 			Gtk.TextIter iter, start;
 			context.get_iter (out iter);
@@ -218,8 +220,10 @@ namespace Editor {
 			MatchInfo match_info;
 			if (!member_access.match (ntext, 0, out match_info))
 				return;
-			if (match_info.fetch(0).length < 1)
+			if (match_info.fetch(0).length < 1)  {
+				hide();
 				return;
+			}
 			string prefix = match_info.fetch (2);
 		//	string prefix = text.substring (text.last_index_of (match_info.fetch (2)));
 			var names = member_access_split.split (match_info.fetch (1));
@@ -267,7 +271,6 @@ namespace Editor {
 				return strcmp (na, nb);
 			};
 			list.sort (cmp);
-			
 			context.add_proposals (this, list, true);
 		}
 		

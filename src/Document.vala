@@ -61,7 +61,8 @@ namespace Editor {
 			});
 			
 			provider = new Provider (this);
-			add_completion_provider (provider);
+			view.completion.add_provider (provider);
+			provider.hide.connect (() => { view.completion.hide(); });
 			
 			Gdk.RGBA ecolor = Gdk.RGBA();
 			ecolor.parse ("red");
