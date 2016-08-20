@@ -13,21 +13,6 @@ namespace Editor {
 		
 		construct {
 			view.auto_indent = true;
-			int cc_line, cc_column;
-			view.paste_clipboard.connect (() => {
-				Gtk.TextIter tmp;
-				view.buffer.get_iter_at_mark (out tmp, view.buffer.get_insert());
-				cc_line = tmp.get_line();
-				cc_column = tmp.get_line_offset();
-			});
-			view.buffer.paste_done.connect (clipboard => {
-				Gtk.TextIter cc_end;
-				view.buffer.get_iter_at_mark (out cc_end, view.buffer.get_insert());
-				Gtk.TextIter cc_start;
-				view.buffer.get_iter_at_line_offset (out cc_start, cc_line, cc_column);
-				buffer.remove_tag_by_name ("warning-tag", cc_start, cc_end);
-				buffer.remove_tag_by_name ("error-tag", cc_start, cc_end);
-			});
 			old_content = view.buffer.text;
 			save.connect (() => {
 				old_content = view.buffer.text;
@@ -44,7 +29,7 @@ namespace Editor {
 			});
 			
 			line_changed.connect (() => {
-				//save();
+			//	save();
 			});
 			
 			view.key_press_event.connect (event => {
@@ -61,8 +46,7 @@ namespace Editor {
 			});
 			
 			provider = new Provider (this);
-			view.completion.add_provider (provider);
-			provider.hide.connect (() => { view.completion.hide(); });
+			add_completion_provider (provider);
 			
 			Gdk.RGBA ecolor = Gdk.RGBA();
 			ecolor.parse ("red");
@@ -112,11 +96,6 @@ namespace Editor {
 			Gtk.TextIter iter;
 			buffer.get_iter_at_line_offset (out iter, location.line - 1, location.column - (end ? 0 : 1));
 			return iter;
-		}
-		
-		public void go_to (Vala.SourceLocation location) {
-			view.place_cursor_onscreen();
-			view.buffer.place_cursor (location_to_iter (location));
 		}
 		
 		public void clear_tags() {

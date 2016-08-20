@@ -1,4 +1,10 @@
 namespace Editor {
+	public errordomain LoadError {
+		NULL,
+		SOURCE,
+		PACKAGE
+	}
+	
 	public class Package : GLib.Object {
 		public Package (string id, string name, string description) {
 			GLib.Object (id: id, name: name, description: description);
@@ -36,10 +42,6 @@ namespace Editor {
 		}
 		
 		static construct {
-			process();
-		}
-		
-		static void process() {
 			packages = new Gee.ArrayList<Package>((p1, p2) => {
 				return (p1.id == p2.id && p1.name == p2.name && p1.description == p2.description);
 			});
@@ -55,34 +57,16 @@ namespace Editor {
 		}
 		
 		public static Gee.List<Package> list_packages() {
-			if (packages == null)
-				process();
 			return packages;
 		}
 		
 		public static Gee.Iterator<Package> list_available_packages() {
-			if (packages == null)
-				process();
 			var context = new Vala.CodeContext();
 			context.profile = Vala.Profile.GOBJECT;
 			
 			return packages.filter (package => {
 				return context.get_vapi_path (package.id) != null || context.get_gir_path (package.id) != null;
 			});
-		}
-		
-		
-		public static bool package_exists (string package, string[] vapidirs) {
-			bool res = false;
-			foreach (string vapidir in vapidirs)
-				if (FileUtils.test (vapidir + "/" + package + ".vapi", FileTest.IS_REGULAR))	
-					return true;
-			list_available_packages().foreach (pkg => {
-				if (pkg.id == package)
-					res = true;
-				return true;
-			});
-			return res;
 		}
 		
 		construct {
@@ -105,22 +89,83 @@ namespace Editor {
 			parser.parse (context);
 		}
 		
-		public bool add_package (string package) {
-			if (!context.has_package ("gobject-2.0")) {
-				context.add_external_package ("glib-2.0");
-				context.add_external_package ("gobject-2.0");
-			}
-			return context.add_external_package (package);
+		public Project? load_project (string filename) throws GLib.Error
+		{
+			var basepath = File.new_for_path(filename).get_parent().get_path();
+			var parser = new Json.Parser();
+			parser.load_from_file (filename);
+			print ("node-type : %s\n", parser.get_root().get_node_type().to_string());
+			if (parser.get_root().get_node_type() != Json.NodeType.OBJECT)
+				return null;
+			var object = parser.get_root().get_object();
+			if (!object.has_member ("name") || object.get_member("name").get_value_type() != typeof (string))
+				return null;
+			if (!object.has_member ("sources") || object.get_member("sources").get_node_type() != Json.NodeType.ARRAY)
+				return null;
+			if (!object.has_member ("packages") || object.get_member("packages").get_node_type() != Json.NodeType.ARRAY)
+				return null;
+			if (object.has_member ("flags") && object.get_member ("flags").get_node_type() != Json.NodeType.OBJECT)
+				return null;
+			var project = new Project (object.get_string_member ("name"), filename);
+			string[] missing = new string[0];
+			context.vapi_directories = new string[0];
+			string[] vapidirs = new string[0];
+			object.get_object_member ("flags").foreach_member ((obj, name, node) => {
+				if (project == null) {
+					context.vapi_directories = new string[0];
+					return;
+				}
+				if (node.get_value_type() != typeof (string))
+					project = null;
+				if (name == "vapidir") {
+					vapidirs += File.new_for_path (node.get_string()).get_path();
+				}
+			});
+			if (project == null)
+				return null;
+			context.vapi_directories = vapidirs;
+			object.get_array_member("packages").foreach_element ((array, index, node) => {
+				if (project == null)
+					return;			
+				if (node.get_value_type() != typeof (string))
+					project = null;
+				else if (!package_exists (node.get_string()))
+					missing += node.get_string();
+				else if (project != null)
+					project.packages.add (node.get_string());
+			});
+			if (missing.length > 0)
+				throw new LoadError.PACKAGE ("these packages are missing : %s".printf (string.joinv ("; ", missing)));
+			object.get_array_member("sources").foreach_element ((array, index, node) => {
+				if (project == null)
+					return;	
+				string rpath = node.get_string();
+				if (rpath[0] != '/')
+					rpath = basepath + "/" + rpath;
+				if (node.get_value_type() != typeof (string) || !FileUtils.test (rpath, FileTest.EXISTS))
+					project = null;
+				else
+					project.sources.add (rpath);
+			});
+			return project;
+		}
+	
+		public bool package_exists (string package) {
+			if (context.get_vapi_path (package) == null && context.get_gir_path (package) == null)
+				return false;
+			bool result = false;
+			packages.foreach (pkg => {
+				if (pkg.id == package) {
+					result = true;
+					return false;
+				}
+				return true;
+			});
+			return result;
 		}
 		
-		public bool add_vapidir (string vapidir) {
-			if (!FileUtils.test (vapidir, FileTest.IS_DIR))
-				return false;
-			var hset = new Gee.HashSet<string>();
-			hset.add_all_array (context.vapi_directories);
-			hset.add (vapidir);
-			context.vapi_directories = hset.to_array();
-			return true;
+		public bool add_package (string package) {
+			return context.add_external_package (package);
 		}
 		
 		public void add_document (Document document) {
@@ -524,46 +569,22 @@ namespace Editor {
 			return context.root;
 		}
 		
-		public bool parsing { get; private set; }
-		/*
 		public void parse() {
-			if (parsing)
-				return;
 			begin_parsing();
 			try {
 				Thread.create<void>(() => {
 					lock (context) {
-						parsing = true;
-						report.init();
 						Vala.CodeContext.push (context);
 						foreach (var file in context.get_source_files())
 							if (file.get_nodes().size == 0)
 								parser.visit_source_file (file);
 						context.check();
-						parsing = false;
 						Vala.CodeContext.pop();
 						end_parsing (report);
 					}
 				}, false);
 			} catch {
 			
-			}
-		}
-		*/
-		
-		public void parse() {
-			lock (context) {
-				begin_parsing();
-				report.init();
-				parsing = true;
-				Vala.CodeContext.push (context);
-				foreach (var file in context.get_source_files())
-					if (file.get_nodes().size == 0)
-						parser.visit_source_file (file);
-				context.check();
-				Vala.CodeContext.pop();
-				end_parsing (report);
-				parsing = false;
 			}
 		}
 	}

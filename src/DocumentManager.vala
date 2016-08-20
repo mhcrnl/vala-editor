@@ -1,12 +1,6 @@
 namespace Editor {
 	public class DocumentManager : Gtk.Notebook {
-		ThreadPool<DocumentManager> pool;
-		
 		construct {
-			pool = new ThreadPool<DocumentManager>.with_owned_data (data => {
-				data.update();
-			}, 3, false);
-			
 			scrollable = true;
 			engine = new Engine();
 			engine.begin_parsing.connect (clear_errors);
@@ -16,29 +10,29 @@ namespace Editor {
 				this.foreach (widget => {
 					this.remove (widget);				
 				});
-				project.update.connect (update);
+				engine.init();
 				project.sources.add.connect (source => {
+					add_document (source);
+					show_all();
 					update();
 				});
 				project.packages.add.connect (package => {
+					engine.add_package (package);
 					update();
 				});
-				pool.add (this);
+				foreach (var src in project.sources)
+					add_document (src);
+				foreach (var pkg in project.packages)
+					engine.add_package (pkg);
+				show_all();
+				engine.parse();
 			});
 		}
 		
-		public void update() {
+		void update() {
 			engine.init();
-			foreach (var dir in project.vapidirs)
-				engine.add_vapidir (dir);
-			foreach (var src in project.sources) {
-				string path = src;
-				if (path[0] != '/') {
-					var basepath = File.new_for_path (project.location).get_parent().get_path();
-					path = basepath + "/" + src;
-				}
-				engine.add_source (path);
-			}
+			foreach (var src in project.sources)
+				engine.add_source (src);
 			foreach (var pkg in project.packages)
 				engine.add_package (pkg);
 			engine.parse();
@@ -69,8 +63,8 @@ namespace Editor {
 			engine.add_document (document);
 			var label = new Gtk.Label (document.title);
 			append_page (document, label);
-			set_tab_reorderable (document, true);
-			set_tab_detachable (document, true);
+			set_tab_reorderable (label, true);
+			set_tab_detachable (label, true);
 		}
 		
 		public bool contains (string path) {
@@ -82,45 +76,9 @@ namespace Editor {
 			return result;
 		}
 		
-		public bool add_file (Vala.SourceReference reference) {
-			if (reference.file.filename in this)
-				return false;
-			var document = new Document (reference.file.filename);
-			document.manager = this;
-			document.show.connect (() => {
-				document.go_to (reference.begin);
-			});
-			if (reference.file.file_type == Vala.SourceFileType.PACKAGE) {
-				document.view.sensitive = false;
-			}
-			var tab = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0);
-			var icon = new Gtk.Image.from_icon_name ("document", Gtk.IconSize.BUTTON);
-			var label = new Gtk.Label (document.title);
-			var button  = new Gtk.Button.from_icon_name ("dialog-close", Gtk.IconSize.BUTTON);
-			tab.pack_start (icon, false, false);
-			tab.pack_start (label);
-			tab.pack_end (button, false, false);
-
-			int i = prepend_page (document, tab);
-			button.clicked.connect (() => {
-				this.remove (document);
-			});
-			tab.show_all();
-			set_tab_reorderable (document, true);
-			show_all();
-			return true;
-		}
-		
-		public bool add_document (string src) {
-			string path = src;
-			if (path[0] != '/') {
-				var basepath = File.new_for_path (project.location).get_parent().get_path();
-				path = basepath + "/" + src;
-			}
-			if (path in this)
-				return false;
+		public void add_document (string path) {
 			var document = new Document (path);
-			document.save.connect_after (update);
+			document.save.connect (update);
 			document.manager = this;
 			engine.add_document (document);
 
@@ -133,21 +91,20 @@ namespace Editor {
 			tab.pack_end (button, false, false);
 
 			document.editing.connect (edit => {
-				icon.icon_name = edit ? "edit-copy" : "document";
+				icon.icon_name = edit ? "mail-message-new" : "document";
 			});
 			
 			int i = prepend_page (document, tab);
 			button.clicked.connect (() => {
-				this.remove (document);
+				this.remove (get_nth_page (i));
 			});
 			tab.show_all();
-			set_tab_reorderable (document, true);
-			show_all();
-			return true;
+			set_tab_reorderable (get_nth_page (i), true);
 		}
 		
-		public Project? load_project (string filename) {
-			return Project.load (filename);
+		public Project? load_project (string filename) throws GLib.Error
+		{
+			return engine.load_project (filename);
 		}
 		
 		public Engine engine { get; private set; }

@@ -12,10 +12,6 @@ namespace Editor {
 			errors_list = new Vala.ArrayList<Error?>();
 		}
 		
-		public void init() {
-			errors_list = new Vala.ArrayList<Error?>();
-		}
-		
 		public void clear (Vala.SourceFile file) {
 			for (var i = 0; i < errors_list.size; i++) {
 				if (errors_list[i].source.file == file) {

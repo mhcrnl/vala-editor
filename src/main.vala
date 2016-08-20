@@ -3,7 +3,5 @@ public static void main (string[] args) {
 	var win = new Editor.Window();
 	win.set_size_request (400, 300);
 	win.show_all();
-	
-	
 	Gtk.main();
 }

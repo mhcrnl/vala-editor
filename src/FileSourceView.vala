@@ -133,8 +133,6 @@ namespace Editor {
 				buffer.get_start_iter (out start);
 				buffer.get_end_iter (out end);
 				buffer.remove_tag_by_name ("search-tag", start, end);
-				if (query == null || query.length == 0)
-					return;
 				while (start.forward_search (query, Gtk.TextSearchFlags.TEXT_ONLY | Gtk.TextSearchFlags.VISIBLE_ONLY, 
 				out start_match, out end_match, null)) {
 					search_bar.count++;

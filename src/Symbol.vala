@@ -12,18 +12,18 @@ namespace Editor {
 	}
 	
 	public class Symbol : GLib.Object {
-		internal Vala.Symbol handle;
+		internal Vala.Symbol vsymbol;
 		internal Vala.SourceReference source_reference;
 		
 		internal Symbol (Vala.Symbol vsymbol) {
-			handle = vsymbol;
+			this.vsymbol = vsymbol;
 			source_reference = vsymbol.source_reference;
 		}
 		
-		static Gee.List<Symbol> fill_symbols (Vala.Symbol vsymbol) {
-			var symbols = new Gee.ArrayList<Symbol>((a, b) => {
-				return (a as Symbol).name == (b as Symbol).name;
-			});
+		GenericArray<Symbol> symbols;
+		
+		void fill_symbols() {
+			symbols = new GenericArray<Symbol>();
 			if (vsymbol is Vala.Namespace) {
 				var symbol = vsymbol as Vala.Namespace;
 				foreach (var sym in symbol.get_namespaces())
@@ -120,23 +120,7 @@ namespace Editor {
 				foreach (var sym in symbol.get_methods())
 					symbols.add (new Symbol (sym));
 			}
-			else if (vsymbol is Vala.Parameter) {
-				var symbol = vsymbol as Vala.Parameter;
-				symbols.add_all (fill_symbols (symbol.variable_type.data_type));
-			}
-			else if (vsymbol is Vala.Property) {
-				var symbol = vsymbol as Vala.Property;
-				symbols.add_all (fill_symbols (symbol.property_type.data_type));
-			}
-			else if (vsymbol is Vala.Field) {
-				var symbol = vsymbol as Vala.Field;
-				symbols.add_all (fill_symbols (symbol.variable_type.data_type));
-			}
-			else if (vsymbol is Vala.LocalVariable) {
-				var symbol = vsymbol as Vala.LocalVariable;
-				symbols.add_all (fill_symbols (symbol.variable_type.data_type));
-			}
-			symbols.sort ((s1, s2) => {
+			symbols.sort_with_data ((s1, s2) => {
 				if (s1.source_reference.file.filename != s2.source_reference.file.filename)
 					return strcmp (s1.source_reference.file.filename, s2.source_reference.file.filename);
 				var ref1 = s1.source_reference;
@@ -147,34 +131,42 @@ namespace Editor {
 					return 1;
 				return 0;
 			});
-			return symbols;
 		}
 		
-		public Gee.List<Symbol> children {
+		public bool has_children {
+			get {
+				if (symbols == null)
+					fill_symbols();
+				return symbols.length != 0;
+			}
+		}
+		
+		public Symbol[] children {
 			owned get {
-				return fill_symbols (handle);
+				if (symbols == null)
+					fill_symbols();
+				return symbols.data;
 			}
 		}
 		
 		public string icon_path {
 			owned get {
-				return "/resources/icons/%s.png".printf (handle.type_name.substring (4).down());
+				return "/resources/icons/%s.png".printf (vsymbol.type_name.substring (4).down());
 			}
 		}
 		
 		public string name {
 			owned get {
-				return handle.name;
+				return vsymbol.name;
 			}
 		}
 		
 		public Symbol? parent {
 			owned get {
-				if (handle.parent_symbol == null)
+				if (vsymbol.parent_symbol == null)
 					return null;
-				return new Symbol (handle.parent_symbol);
+				return new Symbol (vsymbol.parent_symbol);
 			}
 		}
-		
 	}
 }
